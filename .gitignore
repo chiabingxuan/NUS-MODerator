@@ -1,0 +1,15 @@
+# Ignore cached files
+**/__pycache__/
+**/.ipynb_checkpoints/
+
+# Ignore .env file
+.env
+
+# Ignore venv
+venv/
+
+# Ignore data scraped
+disqus/
+
+# Ignore embeddings
+vector_stores/
