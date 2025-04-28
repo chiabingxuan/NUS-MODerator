@@ -1,8 +1,9 @@
-from helpers.chatbot import run_chatbot
-from helpers.ingestion import ingest
+from dotenv import load_dotenv
+from moderator.chatbot.chatbot import run_chatbot
+from moderator.chatbot.ingestion import ingest
+
+load_dotenv()
 
 
 if __name__ == "__main__":
-    # res = run_chatbot(query="What module would you recommend, if I want to learn about Python?")
-    # print(res)
     ingest()
