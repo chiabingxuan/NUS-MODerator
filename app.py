@@ -38,8 +38,6 @@ st.markdown("Welcome to the chat zone! Feel free to ask me anything about course
 if "conversation_history" not in st.session_state:
     st.session_state["conversation_history"] = list()
 
-print(st.session_state["conversation_history"])
-
 # Display chat messages from history, when app is rerun
 for message in st.session_state["conversation_history"]:
     with st.chat_message(message["role"]):

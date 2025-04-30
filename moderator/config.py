@@ -18,7 +18,7 @@ CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 50
 
 # Choose model that we will use to create vector embeddings of chunks
-EMBEDDINGS_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+EMBEDDINGS_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # Configure saving of vector embeddings
 VECTOR_STORE_FOLDER_NAME = "vector_stores"

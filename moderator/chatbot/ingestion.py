@@ -122,6 +122,7 @@ def make_module_textual_info(thread_ids_to_names_and_links: dict[str, dict[str, 
             module_document = Document(
                 page_content=module_text,
                 metadata={
+                    "module_code": module_code,
                     "module_name": module_name,
                     "module_link": module_link
                 }
@@ -169,20 +170,20 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
 
 def ingest():
     # Retrieve module reviews from Disqus API
-    # thread_ids_to_names_and_links, thread_ids_to_messages = use_disqus_api(
-    #     short_name=DISQUS_SHORT_NAME,
-    #     retrieval_limit=DISQUS_RETRIEVAL_LIMIT,
-    #     disqus_folder_name=DISQUS_FOLDER_NAME,
-    #     thread_ids_to_names_and_links_filename=THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME,
-    #     thread_ids_to_messages_filename=THREAD_IDS_TO_MESSAGES_FILENAME,
-    #     disqus_retrieval_details_filename=DISQUS_RETRIEVAL_DETAILS_FILENAME
-    # )
+    thread_ids_to_names_and_links, thread_ids_to_messages = use_disqus_api(
+        short_name=DISQUS_SHORT_NAME,
+        retrieval_limit=DISQUS_RETRIEVAL_LIMIT,
+        disqus_folder_name=DISQUS_FOLDER_NAME,
+        thread_ids_to_names_and_links_filename=THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME,
+        thread_ids_to_messages_filename=THREAD_IDS_TO_MESSAGES_FILENAME,
+        disqus_retrieval_details_filename=DISQUS_RETRIEVAL_DETAILS_FILENAME
+    )
 
-    with open(r"disqus\thread_ids_to_names_and_links.json", "r") as file:
-        thread_ids_to_names_and_links = json.load(file)
+    # with open(r"disqus\thread_ids_to_names_and_links.json", "r") as file:
+    #     thread_ids_to_names_and_links = json.load(file)
 
-    with open(r"disqus\thread_ids_to_messages.json", "r") as file:
-        thread_ids_to_messages = json.load(file)
+    # with open(r"disqus\thread_ids_to_messages.json", "r") as file:
+    #     thread_ids_to_messages = json.load(file)
 
     # Save textual info of modules, in text format
     make_module_textual_info(
