@@ -13,4 +13,4 @@ DOCUMENT_FORMAT_TEMPLATE = "Module: {module_name}\nInformation: {page_content}"
 DOCUMENT_FORMAT_PROMPT = PromptTemplate.from_template(DOCUMENT_FORMAT_TEMPLATE)
 
 # Prompt that asks LLM to come up with an answer, based on rephrased query and documents retrieved
-RETRIEVAL_QA_CHAT_PROMPT = hub.pull("langchain-ai/retrieval-qa-chat")
+RETRIEVAL_QA_CHAT_PROMPT = hub.pull("chiabingxuan/nus-moderator-retrieval-qa")

@@ -16,7 +16,6 @@ from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAM
 load_dotenv()
 DISQUS_API_KEY = os.getenv("DISQUS_API_KEY")
 
-
 def use_disqus_api(short_name: str, retrieval_limit: int, disqus_folder_name: str, thread_ids_to_names_and_links_filename: str, thread_ids_to_messages_filename: str, disqus_retrieval_details_filename: str) -> tuple[dict[str, dict[str, str]], dict[str, list[str]]]:
     # Get epoch
     epoch = int(time.time())

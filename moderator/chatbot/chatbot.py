@@ -14,7 +14,6 @@ from moderator.config import EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VE
 
 load_dotenv()
 
-
 def remove_think_from_llm_output(llm_output: str) -> str:
     # Remove <think>...</think> and strip the result
     actual_llm_response = re.sub(r"<think>.*?</think>", "", llm_output, flags=re.DOTALL).strip()
