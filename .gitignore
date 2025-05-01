@@ -13,3 +13,6 @@ disqus/
 
 # Ignore embeddings
 vector_stores/
+
+# Ignore backup
+backup/

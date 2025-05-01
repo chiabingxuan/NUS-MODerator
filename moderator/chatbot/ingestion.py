@@ -1,9 +1,10 @@
 from dotenv import load_dotenv
 import json
+from langchain_chroma import Chroma
 from langchain_community.document_loaders.text import TextLoader
-from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 from langchain_core.load import dumps, load
+from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 import os
@@ -154,18 +155,21 @@ def make_documents(disqus_folder_name: str, module_documents_filename: str, chun
     return document_chunks
 
 
-def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_name: str, vector_store_folder_name: str, vector_embeddings_filename: str) -> None:
+def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_name: str, vector_store_folder_name: str, vector_embeddings_filename: str) -> VectorStore:
     # Create folder for vector store, if it does not exist
     os.makedirs(vector_store_folder_name, exist_ok=True)
 
-    # Make vector store
+    # Make and save vector store
     print("Making embeddings...")
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-    vectorstore = FAISS.from_documents(document_chunks, embeddings)
+    vectorstore = Chroma.from_documents(
+        documents=document_chunks,
+        embedding=embeddings,
+        collection_name=vector_embeddings_filename,
+        persist_directory=vector_store_folder_name
+    )
 
-    # Save vector store
-    print("Saving embeddings...")
-    vectorstore.save_local(folder_path=vector_store_folder_name, index_name=vector_embeddings_filename)
+    return vectorstore
 
 
 def ingest():
@@ -203,9 +207,11 @@ def ingest():
     )
 
     # Create a vector store containing embeddings of these chunks, before saving it
-    make_and_save_embeddings(
+    vectorstore = make_and_save_embeddings(
         document_chunks=document_chunks,
         embeddings_model_name=EMBEDDINGS_MODEL_NAME,
         vector_store_folder_name=VECTOR_STORE_FOLDER_NAME,
         vector_embeddings_filename=VECTOR_EMBEDDINGS_FILENAME
     )
+
+    print("Ingestion completed!")

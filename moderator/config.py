@@ -23,3 +23,10 @@ EMBEDDINGS_MODEL_NAME = "all-MiniLM-L6-v2"
 # Configure saving of vector embeddings
 VECTOR_STORE_FOLDER_NAME = "vector_stores"
 VECTOR_EMBEDDINGS_FILENAME = "module_text_embeddings"
+
+### QA CONFIGS ###
+# Choose number of documents to be retrieved
+NUM_DOCUMENTS_RETRIEVED = 4
+
+# Choose LLM for QA
+LLM_NAME = "deepseek-r1-distill-llama-70b"
