@@ -9,7 +9,8 @@ st.header("About")
 
 # Display acknowledgements section
 st.markdown("### Acknowledgements")
-st.markdown("It turns out that the good people at NUSMods had actually [used the name \"NUSModerator\"](https://github.com/nusmodifications/nusmods/tree/master/packages/nusmoderator) before I ever did. I guess I'm still hopeless when it comes to naming stuff - if I ever have children, may God bless them.")
+st.markdown("Many thanks to the good people at NUSMods for providing me with assistance along the way, such as their guidance on how to access student reviews via the Disqus API.")
+st.markdown("Sadly, it turns out that the name \"NUSModerator\" [has actually been used before](https://github.com/nusmodifications/nusmods/tree/master/packages/nusmoderator). I guess I'm still hopeless when it comes to naming stuff - if I ever have children, may God bless them.")
 
 # Display information section
 st.markdown("### About Me")
