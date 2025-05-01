@@ -51,11 +51,11 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
     # Outline of workflow:
     # 1. Using original query and chat history, have the LLM create a rephrased prompt
     # 2. Have the LLM extract module codes from the rephrased prompt (if any)
-    # 3. If there are module codes extracted, initialise the retriever with metadata filtering by these module codes.
+    # 3. If there are module codes extracted, initialise retrievers with metadata filtering by these module codes.
     # Otherwise, treat prompt as a generic query - initialise retriever without any metadata filtering
-    # 2. Based on rephrased prompt, the retriever picks the most relevant document chunks
-    # 3. Chunks are formatted and then stuffed into the final QA prompt
-    # 4. Based on final QA prompt, have the LLM come up with an answer
+    # 4. Based on rephrased prompt, the retriever(s) will pick the most relevant document chunks
+    # 5. Chunks are formatted and then stuffed into the final QA prompt
+    # 6. Based on final QA prompt, have the LLM come up with an answer
 
     # Load the vector store containing the embeddings of the module descriptions
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL_NAME)
