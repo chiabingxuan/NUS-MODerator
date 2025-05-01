@@ -8,8 +8,8 @@
 # Ignore venv
 venv/
 
-# Ignore data scraped
-disqus/
+# Ignore data retrieved
+data/
 
 # Ignore embeddings
 vector_stores/

@@ -7,10 +7,9 @@ from langchain_core.runnables import RunnableLambda
 from langchain_chroma import Chroma
 from langchain_groq.chat_models import BaseChatModel, ChatGroq
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
-import re
-
 from moderator.chatbot.prompts import REPHRASE_PROMPT, EXTRACT_MODULE_CODES_PROMPT, DOCUMENT_FORMAT_PROMPT, RETRIEVAL_QA_CHAT_PROMPT
 from moderator.config import EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME, NUM_DOCUMENTS_RETRIEVED, LLM_NAME
+import re
 
 load_dotenv()
 

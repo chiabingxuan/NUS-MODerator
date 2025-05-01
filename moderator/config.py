@@ -1,6 +1,13 @@
 ### INGESTION CONFIGS ###
+# Set duration (in days) before an update is needed (ingest again)
+MAX_DAYS_UNTIL_UPDATE_NEEDED = 160
+
 # Set academic year
 ACAD_YEAR = "2024-2025"
+
+# Configure saving of ingestion details
+DATA_FOLDER_PATH = "data"
+RETRIEVAL_DETAILS_FILENAME = "details.json"
 
 # Configure retrieval of Disqus information
 DISQUS_RETRIEVAL_LIMIT = 100
@@ -10,7 +17,6 @@ DISQUS_SHORT_NAME = "nusmods-prod"
 DISQUS_FOLDER_NAME = "disqus"
 THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME = "thread_ids_to_names_and_links.json"
 THREAD_IDS_TO_MESSAGES_FILENAME = "thread_ids_to_messages.json"
-DISQUS_RETRIEVAL_DETAILS_FILENAME = "details.json" 
 MODULE_DOCUMENTS_FILENAME = "module_documents.json"
 
 # Configurations for chunk creation

@@ -1,26 +1,20 @@
 from dotenv import load_dotenv
 import json
 from langchain_chroma import Chroma
-from langchain_community.document_loaders.text import TextLoader
 from langchain_core.documents.base import Document
 from langchain_core.load import dumps, load
 from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
+from moderator.config import ACAD_YEAR, DATA_FOLDER_PATH, RETRIEVAL_DETAILS_FILENAME, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, DISQUS_FOLDER_NAME, THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME, THREAD_IDS_TO_MESSAGES_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME
 import os
 import requests
 import time
 
-from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, DISQUS_FOLDER_NAME, THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME, THREAD_IDS_TO_MESSAGES_FILENAME, DISQUS_RETRIEVAL_DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME
-
 load_dotenv()
 DISQUS_API_KEY = os.getenv("DISQUS_API_KEY")
 
-def use_disqus_api(short_name: str, retrieval_limit: int, disqus_folder_name: str, thread_ids_to_names_and_links_filename: str, thread_ids_to_messages_filename: str, disqus_retrieval_details_filename: str) -> tuple[dict[str, dict[str, str]], dict[str, list[str]]]:
-    # Get epoch
-    epoch = int(time.time())
-    retrieval_details = {"epoch": epoch}
-
+def use_disqus_api(short_name: str, retrieval_limit: int, disqus_folder_path: str, thread_ids_to_names_and_links_filename: str, thread_ids_to_messages_filename: str) -> tuple[dict[str, dict[str, str]], dict[str, list[str]]]:
     thread_ids_to_names_and_links = dict()        # Maps thread ids to thread names and thread links
     thread_ids_to_messages = dict()               # Maps thread ids to lists of messages
     for endpoint in ["Threads", "Posts"]:
@@ -76,26 +70,21 @@ def use_disqus_api(short_name: str, retrieval_limit: int, disqus_folder_name: st
                 params["cursor"] = response_json["cursor"]["next"]
 
     # Create folder to store data obtained from Disqus API, if it does not exist
-    os.makedirs(disqus_folder_name, exist_ok=True)
+    os.makedirs(disqus_folder_path, exist_ok=True)
 
     # Save mappings as JSON
     thread_ids_to_names_and_links_json = json.dumps(thread_ids_to_names_and_links, indent=4)
-    with open(os.path.join(disqus_folder_name, thread_ids_to_names_and_links_filename), "w") as file:
+    with open(os.path.join(disqus_folder_path, thread_ids_to_names_and_links_filename), "w") as file:
         file.write(thread_ids_to_names_and_links_json)
 
     thread_ids_to_messages_json = json.dumps(thread_ids_to_messages, indent=4)
-    with open(os.path.join(disqus_folder_name, thread_ids_to_messages_filename), "w") as file:
+    with open(os.path.join(disqus_folder_path, thread_ids_to_messages_filename), "w") as file:
         file.write(thread_ids_to_messages_json)
-
-    # Save retrieval details as JSON
-    retrieval_details_json = json.dumps(retrieval_details, indent=4)
-    with open(os.path.join(disqus_folder_name, disqus_retrieval_details_filename), "w") as file:
-        file.write(retrieval_details_json)
 
     return thread_ids_to_names_and_links, thread_ids_to_messages
 
 
-def make_module_textual_info(thread_ids_to_names_and_links: dict[str, dict[str, str]], thread_ids_to_messages: dict[str, list[str]], acad_year: str, disqus_folder_name: str, module_documents_filename: str) -> list[Document]:
+def make_module_textual_info(thread_ids_to_names_and_links: dict[str, dict[str, str]], thread_ids_to_messages: dict[str, list[str]], acad_year: str, disqus_folder_path: str, module_documents_filename: str) -> list[Document]:
     print("Making module textual info...")
 
     # Loop through each thread
@@ -131,17 +120,17 @@ def make_module_textual_info(thread_ids_to_names_and_links: dict[str, dict[str, 
     
     # Save module documents as JSON
     module_documents_json = dumps(module_documents, pretty=True)
-    with open(os.path.join(disqus_folder_name, module_documents_filename), "w") as file:
+    with open(os.path.join(disqus_folder_path, module_documents_filename), "w") as file:
         file.write(module_documents_json)
        
     return module_documents
 
 
-def make_documents(disqus_folder_name: str, module_documents_filename: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
+def make_documents(disqus_folder_path: str, module_documents_filename: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
     print("Making document chunks...")
 
     # Load the list of module documents
-    with open(os.path.join(disqus_folder_name, module_documents_filename), "r") as file:
+    with open(os.path.join(disqus_folder_path, module_documents_filename), "r") as file:
         documents = load(json.load(file))
     
     # Split into chunks
@@ -172,34 +161,42 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
 
 
 def ingest():
+    # Get epoch
+    epoch = int(time.time())
+
+    # Create folder to store data ingested, if it does not exist
+    os.makedirs(DATA_FOLDER_PATH, exist_ok=True)
+
+    # Save retrieval details as JSON
+    retrieval_details = {"epoch": epoch}
+    retrieval_details_json = json.dumps(retrieval_details, indent=4)
+    with open(os.path.join(DATA_FOLDER_PATH, RETRIEVAL_DETAILS_FILENAME), "w") as file:
+        file.write(retrieval_details_json)
+
+    # Get path to Disqus folder
+    disqus_folder_path = os.path.join(DATA_FOLDER_PATH, DISQUS_FOLDER_NAME)
+
     # Retrieve module reviews from Disqus API
     thread_ids_to_names_and_links, thread_ids_to_messages = use_disqus_api(
         short_name=DISQUS_SHORT_NAME,
         retrieval_limit=DISQUS_RETRIEVAL_LIMIT,
-        disqus_folder_name=DISQUS_FOLDER_NAME,
+        disqus_folder_path=disqus_folder_path,
         thread_ids_to_names_and_links_filename=THREAD_IDS_TO_NAMES_AND_LINKS_FILENAME,
-        thread_ids_to_messages_filename=THREAD_IDS_TO_MESSAGES_FILENAME,
-        disqus_retrieval_details_filename=DISQUS_RETRIEVAL_DETAILS_FILENAME
+        thread_ids_to_messages_filename=THREAD_IDS_TO_MESSAGES_FILENAME
     )
-
-    # with open(r"disqus\thread_ids_to_names_and_links.json", "r") as file:
-    #     thread_ids_to_names_and_links = json.load(file)
-
-    # with open(r"disqus\thread_ids_to_messages.json", "r") as file:
-    #     thread_ids_to_messages = json.load(file)
 
     # Save textual info of modules, in text format
     make_module_textual_info(
         thread_ids_to_names_and_links=thread_ids_to_names_and_links,
         thread_ids_to_messages=thread_ids_to_messages,
         acad_year=ACAD_YEAR,
-        disqus_folder_name=DISQUS_FOLDER_NAME,
+        disqus_folder_path=disqus_folder_path,
         module_documents_filename=MODULE_DOCUMENTS_FILENAME
     )
 
     # Make document chunks
     document_chunks = make_documents(
-        disqus_folder_name=DISQUS_FOLDER_NAME,
+        disqus_folder_path=disqus_folder_path,
         module_documents_filename=MODULE_DOCUMENTS_FILENAME,
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP

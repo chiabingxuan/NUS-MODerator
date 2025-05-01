@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
+from moderator.chatbot.chatbot import run_chatbot
 import os
 import streamlit as st
-
-from moderator.chatbot.chatbot import run_chatbot
 
 load_dotenv()
 
@@ -73,19 +72,19 @@ if prompt:
             generated_response = run_chatbot(query=prompt, chat_history=st.session_state["conversation_history"])
             formatted_response = format_moderator_response(generated_response=generated_response)
 
-            # Display moderator's response
-            with st.chat_message("assistant"):
-                st.markdown(formatted_response, unsafe_allow_html=True)
+        # Display moderator's response
+        with st.chat_message("assistant"):
+            st.markdown(formatted_response, unsafe_allow_html=True)
 
-            # Update chat history in session state
-            st.session_state["conversation_history"].append({
-                "role": "user",
-                "content": prompt
-            })
-            st.session_state["conversation_history"].append({
-                "role": "assistant",
-                "content": generated_response["answer"]
-            })
+        # Update chat history in session state
+        st.session_state["conversation_history"].append({
+            "role": "user",
+            "content": prompt
+        })
+        st.session_state["conversation_history"].append({
+            "role": "assistant",
+            "content": generated_response["answer"]
+        })
 
-            # Update formatted moderator responses in session state
-            st.session_state["formatted_responses"].append(formatted_response)
+        # Update formatted moderator responses in session state
+        st.session_state["formatted_responses"].append(formatted_response)
