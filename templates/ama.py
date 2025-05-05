@@ -1,9 +1,6 @@
-from dotenv import load_dotenv
 from moderator.chatbot.chatbot import run_chatbot
 import os
 import streamlit as st
-
-load_dotenv()
 
 def format_moderator_response(generated_response: dict[str, str]):
     # Get raw answer of chatbot

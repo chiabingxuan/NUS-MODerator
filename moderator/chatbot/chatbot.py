@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
 from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.runnables import RunnableLambda
@@ -8,8 +7,6 @@ from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from moderator.chatbot.prompts import REPHRASE_PROMPT, EXTRACT_MODULE_CODES_PROMPT, DOCUMENT_FORMAT_PROMPT, RETRIEVAL_QA_CHAT_PROMPT
 from moderator.config import EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME, NUM_DOCUMENTS_RETRIEVED, LLM_NAME
 import re
-
-load_dotenv()
 
 def remove_think_from_llm_output(llm_output: str) -> str:
     # Remove <think>...</think> and strip the result

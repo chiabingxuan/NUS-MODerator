@@ -2,8 +2,9 @@
 **/__pycache__/
 **/.ipynb_checkpoints/
 
-# Ignore .env file
+# Ignore secrets
 .env
+.streamlit/
 
 # Ignore venv
 venv/

@@ -1,8 +1,8 @@
-from dotenv import load_dotenv
 import streamlit as st
-
-load_dotenv()
+from moderator.admin.update_db import update_db
 
 # Display header
 st.header("NUS-MODerator")
 
+if st.button("Test"):
+    update_db()
