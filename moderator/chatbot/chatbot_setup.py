@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 import json
 from langchain_chroma import Chroma
 from langchain_core.documents.base import Document
@@ -11,12 +10,14 @@ from moderator.sql.chatbot_setup import SET_CONCAT_MAX_LENGTH_STATEMENT, GET_MOD
 import mysql.connector
 import os
 import shutil
+import streamlit as st
 import time
 
-load_dotenv()
-MYSQL_DB_NAME = os.getenv("MYSQL_DB_NAME")
-MYSQL_USERNAME = os.getenv("MYSQL_USERNAME")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_DB_NAME = st.secrets["connections"]["nus_moderator"]["database"]
+MYSQL_USERNAME = st.secrets["connections"]["nus_moderator"]["username"]
+MYSQL_PASSWORD = st.secrets["connections"]["nus_moderator"]["password"]
+HOST = st.secrets["connections"]["nus_moderator"]["host"]
+PORT = st.secrets["connections"]["nus_moderator"]["port"]
 
 def make_module_textual_info(conn: mysql.connector.connection_cext.CMySQLConnection, data_folder_path: str, module_documents_filename: str) -> list[Document]:
     print("Making module textual info...")
@@ -112,8 +113,8 @@ def setup_chatbot():
         user=MYSQL_USERNAME,
         password=MYSQL_PASSWORD,
         database=MYSQL_DB_NAME,
-        host="localhost",
-        port=3306
+        host=HOST,
+        port=PORT
     )
 
     # Get textual info of modules, in the form of documents

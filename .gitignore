@@ -3,7 +3,6 @@
 **/.ipynb_checkpoints/
 
 # Ignore secrets
-.env
 .streamlit/
 
 # Ignore venv

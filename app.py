@@ -1,8 +1,5 @@
-from dotenv import load_dotenv
 import os
 import streamlit as st
-
-load_dotenv()
 
 # Add and run navigation sidebar
 pages = [
