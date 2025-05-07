@@ -2,14 +2,13 @@ from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAM
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT, DELETE_EXISTING_MODULE_STATEMENT
 from moderator.sql.reviews import INSERT_NEW_REVIEW_STATEMENT
-import pandas as pd
 import requests
 from sqlalchemy import text
 import streamlit as st
 
 DISQUS_API_KEY = st.secrets.api_keys.DISQUS_API_KEY
 
-def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]], list[str], dict[str, str]]:
+def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     print(f"Getting module information for AY{acad_year}...")
 
     # Use NUSMods API to get detailed information of modules, for the chosen academic year
@@ -24,7 +23,6 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]]
     
     # Loop through each module retrieved from NUSMods API
     available_modules_this_ay = list()
-    unavailable_modules_this_ay = list()
     departments_to_faculties_this_ay = dict()
     for module_info in module_infos:
         # Get details of this module
@@ -32,11 +30,6 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]]
 
         if not module_sem_data:
             # Semester data is empty for this module - module is not offered this academic year
-            print(f"{module_code} {module_title} is not offered for AY{acad_year}.")
-
-            # Update list of unavailable modules this academic year
-            unavailable_modules_this_ay.append(module_code)
-
             continue
 
         print(f"{module_code} {module_title} is offered for AY{acad_year}.")
@@ -55,7 +48,7 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]]
             "description": module_description
         })
 
-    return available_modules_this_ay, unavailable_modules_this_ay, departments_to_faculties_this_ay
+    return available_modules_this_ay, departments_to_faculties_this_ay
 
     
 def update_departments_table(conn: st.connections.SQLConnection, departments_to_faculties_this_ay: dict[str, str]) -> None:
@@ -65,6 +58,7 @@ def update_departments_table(conn: st.connections.SQLConnection, departments_to_
         # Loop through each department for this academic year
         for department, faculty in departments_to_faculties_this_ay.items():
             print(f"Adding / updating department information for {department}...")
+            
             # Either insert new row for this department, or:
             # If department already exists in table, update the row
             s.execute(
@@ -78,17 +72,14 @@ def update_departments_table(conn: st.connections.SQLConnection, departments_to_
         s.commit()
 
 
-def update_modules_table(conn: st.connections.SQLConnection, available_modules_this_ay: list[dict[str, str]], unavailable_modules_this_ay: list[str]) -> None:
+def update_modules_table(conn: st.connections.SQLConnection, available_modules_this_ay: list[dict[str, str]]) -> None:
     print("Updating modules table...")
-    
+
     with conn.session as s:
-        # Delete unavailable modules from table
-        for unavailable_module_code in unavailable_modules_this_ay:
-            print(f"Deleting module information for {unavailable_module_code}...")
-            s.execute(
-                text(DELETE_EXISTING_MODULE_STATEMENT),
-                params={"code": unavailable_module_code}
-            )
+        # Get set of module codes for the previous academic year
+        # Will use this to remove modules that were offered previously, 
+        # but no longer offered this academic year
+        outdated_module_codes_last_ay = set(conn.query(GET_MODULE_CODES_QUERY, ttl=0)["code"])
 
         # For the available modules, we need to update the table
         for available_module in available_modules_this_ay:
@@ -98,7 +89,7 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
             print(f"Adding / updating module information for {available_module_code}...")
 
             # Either insert new row for this module, or:
-            # If module already exists in table, update the module
+            # If module already exists in table, update the row
             s.execute(
                 text(INSERT_NEW_MODULE_STATEMENT),
                 params={
@@ -109,6 +100,19 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
                 }
             )
 
+            # Remove this module code from outdated_module_codes_last_ay (if it did exist for the previous academic year), 
+            # since this module is offered
+            outdated_module_codes_last_ay.discard(available_module_code)
+
+        # From the table, delete outdated modules that had been offered the previous academic year
+        for outdated_module_code in outdated_module_codes_last_ay:
+            print(f"Deleting module information for {outdated_module_code}...")
+
+            s.execute(
+                text(DELETE_EXISTING_MODULE_STATEMENT),
+                params={"code": outdated_module_code}
+            )
+        
         s.commit()
 
 
@@ -190,7 +194,7 @@ def update_reviews_table(conn: st.connections.SQLConnection, thread_ids_to_names
     print("Updating reviews table...")
 
     # Get set of available module codes this academic year
-    available_module_codes = set(conn.query(GET_MODULE_CODES_QUERY)["code"])
+    available_module_codes = set(conn.query(GET_MODULE_CODES_QUERY, ttl=0)["code"])
 
     # Loop through each thread retrieved from Disqus
     for thread_id, reviews in thread_ids_to_posts.items():
@@ -212,7 +216,7 @@ def update_reviews_table(conn: st.connections.SQLConnection, thread_ids_to_names
                 review_id, review_message = review["post_id"], review["post_message"]
 
                 # Either insert new row for this review, or:
-                # If review already exists in table, update the review
+                # If review already exists in table, update the row
                 s.execute(
                     text(INSERT_NEW_REVIEW_STATEMENT),
                     params={
@@ -231,13 +235,13 @@ def update_db() -> None:
 
     # Fetch latest information from NUSMods API
     # Get the modules offered, the modules not offered, and the departments available this academic year
-    available_modules_this_ay, unavailable_modules_this_ay, departments_to_faculties_this_ay = get_module_info_this_acad_year(acad_year=ACAD_YEAR)
-    
+    available_modules_this_ay, departments_to_faculties_this_ay = get_module_info_this_acad_year(acad_year=ACAD_YEAR)
+
     # Update "departments" table in MySQL database
     update_departments_table(conn=conn, departments_to_faculties_this_ay=departments_to_faculties_this_ay)
 
     # Update "modules" table in MySQL database
-    update_modules_table(conn=conn, available_modules_this_ay=available_modules_this_ay, unavailable_modules_this_ay=unavailable_modules_this_ay)
+    update_modules_table(conn=conn, available_modules_this_ay=available_modules_this_ay)
 
     # Deleted outdated departments from "departments" table
     delete_outdated_departments(conn=conn)

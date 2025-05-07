@@ -2,7 +2,7 @@
 # code, title, department, description
 
 GET_MODULE_CODES_QUERY = """
-SELECT m.code AS code
+SELECT m.code
 FROM modules m;
 """
 

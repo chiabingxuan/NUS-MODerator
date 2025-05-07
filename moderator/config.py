@@ -7,9 +7,6 @@ DISQUS_RETRIEVAL_LIMIT = 100
 DISQUS_SHORT_NAME = "nusmods-prod"
 
 ### CHATBOT SETUP ###
-# Set duration (in days) before the user should be forced to carry out the chatbot setup again
-MAX_DAYS_UNTIL_NEW_CHATBOT_SETUP = 160
-
 # Configure saving of ingestion by user
 DATA_FOLDER_PATH = "data"
 DETAILS_FILENAME = "details.json"

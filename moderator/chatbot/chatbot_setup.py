@@ -10,6 +10,7 @@ from moderator.config import DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENT
 from moderator.sql.chatbot_setup import SET_CONCAT_MAX_LENGTH_STATEMENT, GET_MODULE_COMBINED_REVIEWS_QUERY
 import mysql.connector
 import os
+import shutil
 import time
 
 load_dotenv()
@@ -37,7 +38,7 @@ def make_module_textual_info(conn: mysql.connector.connection_cext.CMySQLConnect
         # Get link to NUSMods page for the module
         module_link = f"https://nusmods.com/courses/{module_code}"
                 
-        # print(f"Making textual info for {module_name}...")
+        print(f"Making textual info for {module_name}...")
 
         # Combine description of module + reviews of module to make a document
         module_text_with_description = f"{module_description}\n{module_combined_text}"
@@ -77,7 +78,7 @@ def make_documents(data_folder_path: str, module_documents_filename: str, chunk_
 
 
 def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_name: str, vector_store_folder_name: str, vector_embeddings_filename: str) -> VectorStore:
-    # Create folder for vector store, if it does not exist
+    # Create folder for vector store
     os.makedirs(vector_store_folder_name, exist_ok=True)
 
     # Make and save vector store
@@ -100,7 +101,7 @@ def setup_chatbot():
     # Create data folder, if it does not exist
     os.makedirs(DATA_FOLDER_PATH, exist_ok=True)
 
-    # Save retrieval details as JSON
+    # Save setup details as JSON
     details = {"epoch": epoch}
     details_json = json.dumps(details, indent=4)
     with open(os.path.join(DATA_FOLDER_PATH, DETAILS_FILENAME), "w") as file:
@@ -129,6 +130,10 @@ def setup_chatbot():
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP
     )
+
+    # Remove existing folder containing vector store
+    if os.path.isdir(VECTOR_STORE_FOLDER_NAME):
+        shutil.rmtree(VECTOR_STORE_FOLDER_NAME)
 
     # Create a vector store containing embeddings of these chunks, before saving it
     vectorstore = make_and_save_embeddings(
