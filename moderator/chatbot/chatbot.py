@@ -1,12 +1,15 @@
 from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
 from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.runnables import RunnableLambda
-from langchain_chroma import Chroma
 from langchain_groq.chat_models import BaseChatModel, ChatGroq
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_pinecone import PineconeVectorStore
 from moderator.chatbot.prompts import REPHRASE_PROMPT, EXTRACT_MODULE_CODES_PROMPT, DOCUMENT_FORMAT_PROMPT, RETRIEVAL_QA_CHAT_PROMPT
-from moderator.config import EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME, NUM_DOCUMENTS_RETRIEVED, LLM_NAME
+from moderator.config import EMBEDDINGS_MODEL_NAME, NUM_DOCUMENTS_RETRIEVED_GENERAL, NUM_DOCUMENTS_RETRIEVED_SPECIFIC, LLM_NAME
 import re
+import streamlit as st
+
+PINECONE_INDEX_NAME = st.secrets["PINECONE_INDEX_NAME"]
 
 def remove_think_from_llm_output(llm_output: str) -> str:
     # Remove <think>...</think> and strip the result
@@ -45,19 +48,16 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
     # Outline of workflow:
     # 1. Using original query and chat history, have the LLM create a rephrased prompt
     # 2. Have the LLM extract module codes from the rephrased prompt (if any)
-    # 3. If there are module codes extracted, initialise retrievers with metadata filtering by these module codes.
-    # Otherwise, treat prompt as a generic query - initialise retriever without any metadata filtering
-    # 4. Based on rephrased prompt, the retriever(s) will pick the most relevant document chunks
-    # 5. Chunks are formatted and then stuffed into the final QA prompt
-    # 6. Based on final QA prompt, have the LLM come up with an answer
+    # 3. First treat prompt as a generic query - initialise retriever without any metadata filtering
+    # 4. Based on rephrased prompt, this retriever will pick the most relevant document chunks
+    # 5. If there are module codes extracted, initialise retrievers with metadata filtering by these module codes.
+    # 6. Based on rephrased prompt, these specialised retriever(s) will pick the most relevant document chunks
+    # 7. All the chunks retrieved are formatted and then stuffed into the final QA prompt
+    # 8. Based on final QA prompt, have the LLM come up with an answer
 
     # Load the vector store containing the embeddings of the module descriptions
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL_NAME)
-    vector_store = Chroma(
-        embedding_function=embeddings,
-        collection_name=VECTOR_EMBEDDINGS_FILENAME,
-        persist_directory=VECTOR_STORE_FOLDER_NAME
-    )
+    vector_store = PineconeVectorStore(index_name=PINECONE_INDEX_NAME, embedding=embeddings)
     
     # Initialise LLM
     llm = ChatGroq(model=LLM_NAME, temperature=0)
@@ -75,18 +75,29 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
     print(module_codes)
 
     # Initialise retriever and use it for retrieval
+    # First initialise a retriever without metadata filtering (general retrieval)
+    retriever = vector_store.as_retriever(
+        search_kwargs={
+            "k": NUM_DOCUMENTS_RETRIEVED_GENERAL
+        }
+    )
+
+    # Use general retriever to get relevant document chunks, based on the rephrased query
+    document_chunks = retriever.invoke(rephrased_query)
+
     if module_codes:
-        # Retrieval must be specific to certain modules - retrievers must have metadata filtering by module code
+        # Should also have a retrieval that is specific to certain modules - in this case we need metadata filtering by module code
         # Loop through each module and retrieve a few documents for it
-        document_chunks = list()
         for module_code in module_codes:
             # Create retriever that filters out documents for this module only
             # Must create retriever for each module, to ensure that at least 1 document is being retrieved per module
             retriever = vector_store.as_retriever(
                 search_kwargs={
-                    "k": NUM_DOCUMENTS_RETRIEVED,
+                    "k": NUM_DOCUMENTS_RETRIEVED_SPECIFIC,
                     "filter": {
-                        "module_code": module_code  
+                        "module_code": {
+                            "$eq": module_code
+                        } 
                     }
                 }
             )
@@ -94,17 +105,6 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
             # Get relevant document chunks for this module, based on the rephrased query
             document_chunks_for_module_code = retriever.invoke(rephrased_query)
             document_chunks.extend(document_chunks_for_module_code)
-
-    else:
-        # All modules are relevant - no metadata filtering needed
-        retriever = vector_store.as_retriever(
-        search_kwargs={
-                "k": NUM_DOCUMENTS_RETRIEVED
-            }
-        )
-
-        # Get relevant document chunks, based on the rephrased query
-        document_chunks = retriever.invoke(rephrased_query)
 
     # Create QA chain that will format and then stuff relevant document chunks (past context) into the QA prompt, before having the LLM answer based on this prompt
     stuff_documents_chain = create_stuff_documents_chain(llm=llm, prompt=RETRIEVAL_QA_CHAT_PROMPT, document_prompt=DOCUMENT_FORMAT_PROMPT)

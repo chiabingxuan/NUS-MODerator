@@ -1,15 +1,14 @@
 import json
-from langchain_chroma import Chroma
 from langchain_core.documents.base import Document
 from langchain_core.load import dumps, load
 from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
-from moderator.config import DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME
+from moderator.config import DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
 from moderator.sql.chatbot_setup import GET_MODULE_COMBINED_REVIEWS_QUERY
 import psycopg2
 import os
-import shutil
 import streamlit as st
 import time
 
@@ -18,6 +17,7 @@ PGSQL_USERNAME = st.secrets["connections"]["nus_moderator"]["username"]
 PGSQL_PASSWORD = st.secrets["connections"]["nus_moderator"]["password"]
 HOST = st.secrets["connections"]["nus_moderator"]["host"]
 PORT = st.secrets["connections"]["nus_moderator"]["port"]
+PINECONE_INDEX_NAME = st.secrets["PINECONE_INDEX_NAME"]
 
 def make_module_textual_info(conn: psycopg2.extensions.connection, data_folder_path: str, module_documents_filename: str) -> list[Document]:
     print("Making module textual info...")
@@ -77,21 +77,23 @@ def make_documents(data_folder_path: str, module_documents_filename: str, chunk_
     return document_chunks
 
 
-def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_name: str, vector_store_folder_name: str, vector_embeddings_filename: str) -> VectorStore:
-    # Create folder for vector store
-    os.makedirs(vector_store_folder_name, exist_ok=True)
-
-    # Make and save vector store
+def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_name: str, batch_size: int) -> VectorStore:
+    # Make and store vector store in Pinecone
     print("Making embeddings...")
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-    vectorstore = Chroma.from_documents(
-        documents=document_chunks,
-        embedding=embeddings,
-        collection_name=vector_embeddings_filename,
-        persist_directory=vector_store_folder_name
-    )
+    vector_store = PineconeVectorStore(embedding=embeddings, index_name=PINECONE_INDEX_NAME)
 
-    return vectorstore
+    # Add documents batchwise to avoid exceeding upsert limit
+    num_documents = len(document_chunks)
+    start_index = 0
+    while start_index < num_documents:
+        document_chunks_in_batch = document_chunks[start_index: start_index + batch_size]
+        vector_store.add_documents(documents=document_chunks_in_batch)
+        
+        # Increment start_index
+        start_index += batch_size
+
+    return vector_store
 
 
 def setup_chatbot():
@@ -131,16 +133,11 @@ def setup_chatbot():
         chunk_overlap=CHUNK_OVERLAP
     )
 
-    # Remove existing folder containing vector store
-    if os.path.isdir(VECTOR_STORE_FOLDER_NAME):
-        shutil.rmtree(VECTOR_STORE_FOLDER_NAME)
-
-    # Create a vector store containing embeddings of these chunks, before saving it
-    vectorstore = make_and_save_embeddings(
+    # Create a vector store containing embeddings of these chunks, before storing it in Pinecone
+    vector_store = make_and_save_embeddings(
         document_chunks=document_chunks,
         embeddings_model_name=EMBEDDINGS_MODEL_NAME,
-        vector_store_folder_name=VECTOR_STORE_FOLDER_NAME,
-        vector_embeddings_filename=VECTOR_EMBEDDINGS_FILENAME
+        batch_size=PINECONE_BATCH_SIZE
     )
 
     print("Chatbot setup completed!")
