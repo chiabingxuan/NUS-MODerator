@@ -20,8 +20,6 @@ CHUNK_OVERLAP = 100
 EMBEDDINGS_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # Configure saving of vector embeddings
-VECTOR_STORE_FOLDER_NAME = "vector_stores"
-VECTOR_EMBEDDINGS_FILENAME = "module_text_embeddings"
 PINECONE_BATCH_SIZE = 500
 
 ### QA CONFIGS ###

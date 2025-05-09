@@ -1,5 +1,5 @@
 from moderator.chatbot.chatbot import run_chatbot
-from moderator.chatbot.chatbot_setup import setup_chatbot
+from moderator.chatbot.chatbot_setup import update_vector_store
 from moderator.admin.update_db import update_db
 import os
 import streamlit as st
@@ -12,4 +12,4 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 
 
 if __name__ == "__main__":
-    setup_chatbot()
+    update_vector_store()

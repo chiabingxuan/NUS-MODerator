@@ -83,6 +83,9 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     vector_store = PineconeVectorStore(embedding=embeddings, index_name=PINECONE_INDEX_NAME)
 
+    # First delete all the existing vectors in the vector store
+    vector_store.delete(delete_all=True)
+
     # Add documents batchwise to avoid exceeding upsert limit
     num_documents = len(document_chunks)
     start_index = 0
@@ -96,7 +99,7 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
     return vector_store
 
 
-def setup_chatbot():
+def update_vector_store():
     # Get epoch
     epoch = int(time.time())
 
@@ -140,4 +143,4 @@ def setup_chatbot():
         batch_size=PINECONE_BATCH_SIZE
     )
 
-    print("Chatbot setup completed!")
+    print("Completed the vector store update!")

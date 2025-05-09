@@ -17,3 +17,12 @@ CREATE TABLE IF NOT EXISTS reviews (
     message TEXT NOT NULL,
     FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    username VARCHAR(255) PRIMARY KEY,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    matriculation_ay VARCHAR(255) NOT NULL,
+    major VARCHAR(255) NOT NULL
+);
