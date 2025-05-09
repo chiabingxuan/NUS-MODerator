@@ -1,7 +1,7 @@
 # Keep this here to avoid SQLite error on Streamlit Community Cloud
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 # Import other libraries
 import os

@@ -6,7 +6,7 @@ import requests
 from sqlalchemy import text
 import streamlit as st
 
-DISQUS_API_KEY = st.secrets.api_keys.DISQUS_API_KEY
+DISQUS_API_KEY = st.secrets["DISQUS_API_KEY"]
 
 def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     print(f"Getting module information for AY{acad_year}...")
@@ -237,10 +237,10 @@ def update_db() -> None:
     # Get the modules offered, the modules not offered, and the departments available this academic year
     available_modules_this_ay, departments_to_faculties_this_ay = get_module_info_this_acad_year(acad_year=ACAD_YEAR)
 
-    # Update "departments" table in MySQL database
+    # Update "departments" table in PostgreSQL database
     update_departments_table(conn=conn, departments_to_faculties_this_ay=departments_to_faculties_this_ay)
 
-    # Update "modules" table in MySQL database
+    # Update "modules" table in PostgreSQL database
     update_modules_table(conn=conn, available_modules_this_ay=available_modules_this_ay)
 
     # Deleted outdated departments from "departments" table
@@ -249,7 +249,7 @@ def update_db() -> None:
     # Retrieve reviews, by fetching latest information from Disqus API
     thread_ids_to_names, thread_ids_to_posts = use_disqus_api(short_name=DISQUS_SHORT_NAME, retrieval_limit=DISQUS_RETRIEVAL_LIMIT)
 
-    # Update "reviews" table in MySQL database, by fetching latest information from NUSMods API
+    # Update "reviews" table in PostgreSQL database, by fetching latest information from NUSMods API
     update_reviews_table(conn=conn, thread_ids_to_names=thread_ids_to_names, thread_ids_to_posts=thread_ids_to_posts)
 
     print("Update completed!")

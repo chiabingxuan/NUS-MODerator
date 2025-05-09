@@ -6,27 +6,26 @@ from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from moderator.config import DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, VECTOR_STORE_FOLDER_NAME, VECTOR_EMBEDDINGS_FILENAME
-from moderator.sql.chatbot_setup import SET_CONCAT_MAX_LENGTH_STATEMENT, GET_MODULE_COMBINED_REVIEWS_QUERY
-import mysql.connector
+from moderator.sql.chatbot_setup import GET_MODULE_COMBINED_REVIEWS_QUERY
+import psycopg2
 import os
 import shutil
 import streamlit as st
 import time
 
-MYSQL_DB_NAME = st.secrets["connections"]["nus_moderator"]["database"]
-MYSQL_USERNAME = st.secrets["connections"]["nus_moderator"]["username"]
-MYSQL_PASSWORD = st.secrets["connections"]["nus_moderator"]["password"]
+PGSQL_DB_NAME = st.secrets["connections"]["nus_moderator"]["database"]
+PGSQL_USERNAME = st.secrets["connections"]["nus_moderator"]["username"]
+PGSQL_PASSWORD = st.secrets["connections"]["nus_moderator"]["password"]
 HOST = st.secrets["connections"]["nus_moderator"]["host"]
 PORT = st.secrets["connections"]["nus_moderator"]["port"]
 
-def make_module_textual_info(conn: mysql.connector.connection_cext.CMySQLConnection, data_folder_path: str, module_documents_filename: str) -> list[Document]:
+def make_module_textual_info(conn: psycopg2.extensions.connection, data_folder_path: str, module_documents_filename: str) -> list[Document]:
     print("Making module textual info...")
 
     # Create cursor
     cur = conn.cursor()
 
     # Query the official module description and combined reviews, for each module
-    cur.execute(SET_CONCAT_MAX_LENGTH_STATEMENT)        # Increase max length for GROUP_CONCAT()
     cur.execute(GET_MODULE_COMBINED_REVIEWS_QUERY)
     rows_queried = cur.fetchall()
 
@@ -108,11 +107,11 @@ def setup_chatbot():
     with open(os.path.join(DATA_FOLDER_PATH, DETAILS_FILENAME), "w") as file:
         file.write(details_json)
 
-    # Connect to MySQL database
-    conn = mysql.connector.connect(
-        user=MYSQL_USERNAME,
-        password=MYSQL_PASSWORD,
-        database=MYSQL_DB_NAME,
+    # Connect to PostgreSQL database
+    conn = psycopg2.connect(
+        user=PGSQL_USERNAME,
+        password=PGSQL_PASSWORD,
+        database=PGSQL_DB_NAME,
         host=HOST,
         port=PORT
     )

@@ -4,8 +4,8 @@
 INSERT_NEW_DEPARTMENT_STATEMENT = """
 INSERT INTO departments
 VALUES (:department, :faculty)
-ON DUPLICATE KEY UPDATE
-faculty = :faculty;
+ON CONFLICT (department) DO UPDATE SET
+faculty = EXCLUDED.faculty;
 """
 
 DELETE_OUTDATED_DEPARTMENTS_STATEMENT = """

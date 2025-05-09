@@ -9,8 +9,8 @@ FROM modules m;
 INSERT_NEW_MODULE_STATEMENT = """
 INSERT INTO modules
 VALUES (:code, :title, :department, :description)
-ON DUPLICATE KEY UPDATE
-title = :title, department = :department, description = :description;
+ON CONFLICT (code) DO UPDATE SET
+title = EXCLUDED.title, department = EXCLUDED.department, description = EXCLUDED.description;
 """
 
 DELETE_EXISTING_MODULE_STATEMENT = """

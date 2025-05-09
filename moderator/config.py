@@ -13,7 +13,7 @@ DETAILS_FILENAME = "details.json"
 MODULE_DOCUMENTS_FILENAME = "module_documents.json"
 
 # Configurations for chunk creation
-CHUNK_SIZE = 1000
+CHUNK_SIZE = 2000
 CHUNK_OVERLAP = 50
 
 # Choose model that we will use to create vector embeddings of chunks
