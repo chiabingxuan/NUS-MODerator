@@ -1,6 +1,3 @@
-# Schema:
-# code, title, department, description
-
 GET_MODULE_CODES_QUERY = """
 SELECT m.code
 FROM modules m;

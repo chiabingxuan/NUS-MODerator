@@ -1,3 +1,16 @@
+### REGISTRATION ###
+AVAILABLE_MAJORS = [
+    "Data Science and Analytics",
+    "Life Sciences"
+]
+
+MATRICULATION_AYS = [
+    "2022-2023",
+    "2023-2024",
+    "2024-2025"
+]
+
+
 ### UPDATING DATABASE ###
 # Set academic year
 ACAD_YEAR = "2024-2025"
@@ -24,7 +37,7 @@ PINECONE_BATCH_SIZE = 500
 
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved
-NUM_DOCUMENTS_RETRIEVED_GENERAL = 3
+NUM_DOCUMENTS_RETRIEVED_GENERAL = 4
 NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 2
 
 # Choose LLM for QA

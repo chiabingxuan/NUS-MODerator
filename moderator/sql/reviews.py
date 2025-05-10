@@ -1,6 +1,3 @@
-# Schema:
-# id, module_code, message
-
 INSERT_NEW_REVIEW_STATEMENT = """
 INSERT INTO reviews
 VALUES (:id, :module_code, :message)

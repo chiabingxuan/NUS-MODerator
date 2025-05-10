@@ -1,6 +1,3 @@
-# Schema:
-# department, faculty
-
 INSERT_NEW_DEPARTMENT_STATEMENT = """
 INSERT INTO departments
 VALUES (:department, :faculty)

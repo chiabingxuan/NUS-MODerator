@@ -19,41 +19,47 @@ def confirm_update(content_to_update: str) -> None:
         # If cancellation is triggered, use a rerun to close the dialog
         st.rerun()
 
-
 # Initialise variable to keep track of to nature of the update requested, if any
 if "content_to_update" not in st.session_state:
     st.session_state["content_to_update"] = None
 
-# Display header
-st.header("Admin Workspace")
+# Check user permission
+if st.session_state["user_details"]["username"] is None or st.session_state["user_details"]["role"] != "admin":
+    # User is either a guest or is not an admin - no permission to access this page
+    with st.container(border=True):
+        st.markdown("### Sorry, you are not the chosen one :(")
+        st.markdown("You do not have permission to access this page. Please convince Bing Xuan to give you admin rights.")
 
-# Display buttons to update data
-with st.container(border=True):
-    st.markdown("### Update Data")
-    left_col, middle_col, right_col = st.columns((1, 1, 1))
+else:
+    # User is an admin
+    # Display header
+    st.header("Admin Workspace")
 
-    # Display update buttons if they have not been clicked
-    if st.session_state["content_to_update"] is None:
-        if st.button("Update Database"):
-            # Admin wants to update database - ask them to confirm their request
-            confirm_update("database")
-        
-        if st.button("Update Vector Store"):
-            # Admin wants to update vector store - ask them to confirm their request
-            confirm_update("vector_store")
+    # Display buttons to update data
+    with st.container(border=True):
+        st.markdown("### Update Data")
+        left_col, middle_col, right_col = st.columns((1, 1, 1))
 
-    else:
-        # An update button has been clicked - proceed to update content requested
-        with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
-            if st.session_state["content_to_update"] == "database":
-                # Update the PostgreSQL database
-                update_db()
+        # Display update buttons if they have not been clicked
+        if st.session_state["content_to_update"] is None:
+            if st.button("Update Database"):
+                # Admin wants to update database - ask them to confirm their request
+                confirm_update("database")
+            
+            if st.button("Update Vector Store"):
+                # Admin wants to update vector store - ask them to confirm their request
+                confirm_update("vector_store")
 
-            else:
-                # Update Pinecone vector store
-                update_vector_store()
-        
-        st.success("Update completed! Please refresh the page.")
-        st.session_state["content_to_update"] = None
-        
+        else:
+            # An update button has been clicked - proceed to update content requested
+            with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
+                if st.session_state["content_to_update"] == "database":
+                    # Update the PostgreSQL database
+                    update_db()
 
+                else:
+                    # Update Pinecone vector store
+                    update_vector_store()
+            
+            st.success("Update completed! Please refresh the page.")
+            st.session_state["content_to_update"] = None

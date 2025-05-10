@@ -24,5 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     matriculation_ay VARCHAR(255) NOT NULL,
-    major VARCHAR(255) NOT NULL
+    major VARCHAR(255) NOT NULL,
+    role VARCHAR(255) NOT NULL
+    CHECK (role IN ('user', 'admin'))
 );
