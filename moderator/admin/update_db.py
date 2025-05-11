@@ -1,14 +1,16 @@
-from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME
+from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT, DELETE_EXISTING_MODULE_STATEMENT
+from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT, DELETE_EXISTING_OFFER_STATEMENT
 from moderator.sql.reviews import INSERT_NEW_REVIEW_STATEMENT
+from moderator.sql.semesters import INSERT_NEW_SEMESTER_STATEMENT
 import requests
 from sqlalchemy import text
 import streamlit as st
 
 DISQUS_API_KEY = st.secrets["DISQUS_API_KEY"]
 
-def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, int | str | list[int]]], dict[str, str]]:
     print(f"Getting module information for AY{acad_year}...")
 
     # Use NUSMods API to get detailed information of modules, for the chosen academic year
@@ -26,7 +28,7 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]]
     departments_to_faculties_this_ay = dict()
     for module_info in module_infos:
         # Get details of this module
-        module_code, module_title, module_dept, module_faculty, module_description, module_sem_data = module_info["moduleCode"], module_info["title"], module_info["department"], module_info["faculty"], module_info["description"], module_info["semesterData"]
+        module_code, module_title, module_dept, module_faculty, module_description, module_sem_data, module_mcs = module_info["moduleCode"], module_info["title"], module_info["department"], module_info["faculty"], module_info["description"], module_info["semesterData"], module_info["moduleCredit"]
 
         if not module_sem_data:
             # Semester data is empty for this module - module is not offered this academic year
@@ -40,12 +42,18 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, str]]
         # really matter for our use case at the moment
         departments_to_faculties_this_ay[module_dept] = module_faculty
             
+        # Get the semesters where the module will be offered
+        # 1 = Sem 1 only, 2 = Sem 2, 3 = Special Term 1, 4 = Special Term 2
+        sems_offered = [sem_data["semester"] for sem_data in module_sem_data]
+
         # Update list of available modules this academic year
         available_modules_this_ay.append({
             "code": module_code,
             "title": module_title,
             "department": module_dept,
-            "description": module_description
+            "description": module_description,
+            "num_mcs": module_mcs,
+            "sems_offered": sems_offered
         })
 
     return available_modules_this_ay, departments_to_faculties_this_ay
@@ -72,7 +80,7 @@ def update_departments_table(conn: st.connections.SQLConnection, departments_to_
         s.commit()
 
 
-def update_modules_table(conn: st.connections.SQLConnection, available_modules_this_ay: list[dict[str, str]]) -> None:
+def update_modules_table(conn: st.connections.SQLConnection, available_modules_this_ay: list[dict[str, int | str | list[int]]]) -> None:
     print("Updating modules table...")
 
     with conn.session as s:
@@ -84,7 +92,7 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
         # For the available modules, we need to update the table
         for available_module in available_modules_this_ay:
             # Get information for this module
-            available_module_code, available_module_title, available_module_dept, available_module_description = available_module["code"], available_module["title"], available_module["department"], available_module["description"]
+            available_module_code, available_module_title, available_module_dept, available_module_description, available_module_num_mcs = available_module["code"], available_module["title"], available_module["department"], available_module["description"], available_module["num_mcs"]
             
             print(f"Adding / updating module information for {available_module_code}...")
 
@@ -96,7 +104,8 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
                     "code": available_module_code,
                     "title": available_module_title,
                     "department": available_module_dept,
-                    "description": available_module_description
+                    "description": available_module_description,
+                    "num_mcs": available_module_num_mcs
                 }
             )
 
@@ -229,6 +238,61 @@ def update_reviews_table(conn: st.connections.SQLConnection, thread_ids_to_names
             s.commit()
 
 
+def update_semesters_table(conn: st.connections.SQLConnection, semester_list: list[dict[str, int | str]]) -> None:
+    print("Updating semesters table...")
+
+    with conn.session as s:
+        # Either insert new row for this semester, or:
+        # If semester already exists in table, update the row
+        for sem_data in semester_list:
+            s.execute(
+                text(INSERT_NEW_SEMESTER_STATEMENT),
+                params=sem_data
+            )
+
+        s.commit()
+
+
+def update_offers_table(conn: st.connections.SQLConnection, available_modules_this_ay: list[dict[str, int | str | list[int]]], semester_list: list[dict[str, int | str]]) -> None:
+    # For the available modules, we need to update the "offers" table
+    with conn.session as s:
+        for available_module in available_modules_this_ay:
+            # Get the list of semesters when this module is offered
+            available_module_code, available_module_sems_offered = available_module["code"], available_module["sems_offered"]
+            
+            print(f"Adding / deleting offer information for {available_module_code}...")
+            
+            # Get the list of all semesters
+            all_sems = [sem_data["num"] for sem_data in semester_list]
+
+            # Loop through each semester and check whether module is offered
+            for sem_num in all_sems:
+                if sem_num in available_module_sems_offered:
+                    # Module is offered
+                    # Either insert new row for this offer, or:
+                    # If offer already exists, do nothing
+                    s.execute(
+                        text(INSERT_NEW_OFFER_STATEMENT),
+                        params={
+                            "module_code": available_module_code,
+                            "sem_num": sem_num
+                        }
+                    )
+                
+                else:
+                    # Module is not offered
+                    # Delete existing offer, if any
+                    s.execute(
+                        text(DELETE_EXISTING_OFFER_STATEMENT),
+                        params={
+                            "module_code": available_module_code,
+                            "sem_num": sem_num
+                        }
+                    )
+
+        s.commit()
+
+
 def update_db() -> None:
     # Initialise connection
     conn = st.connection("nus_moderator", type="sql")
@@ -251,5 +315,11 @@ def update_db() -> None:
 
     # Update "reviews" table in PostgreSQL database, by fetching latest information from NUSMods API
     update_reviews_table(conn=conn, thread_ids_to_names=thread_ids_to_names, thread_ids_to_posts=thread_ids_to_posts)
+
+    # Update "semesters" table in PostgreSQL database
+    update_semesters_table(conn=conn, semester_list=SEMESTER_LIST)
+
+    # Update "offers" table in PostgreSQL database
+    update_offers_table(conn=conn, available_modules_this_ay=available_modules_this_ay, semester_list=SEMESTER_LIST)
 
     print("Update completed!")

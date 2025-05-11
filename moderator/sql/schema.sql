@@ -8,7 +8,23 @@ CREATE TABLE IF NOT EXISTS modules (
     title VARCHAR(255) NOT NULL,
     department VARCHAR(255) NOT NULL,
     description TEXT,
-    FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE
+    num_mcs NUMERIC(10, 2) NOT NULL,
+    FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE,
+    CHECK (num_mcs >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS semesters (
+    num INT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    CHECK (num IN (1, 2, 3, 4))
+);
+
+CREATE TABLE IF NOT EXISTS offers (
+    module_code VARCHAR(255),
+    sem_num INT,
+    PRIMARY KEY (module_code, sem_num),
+    FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
@@ -25,6 +41,6 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255) NOT NULL,
     matriculation_ay VARCHAR(255) NOT NULL,
     major VARCHAR(255) NOT NULL,
-    role VARCHAR(255) NOT NULL
+    role VARCHAR(255) NOT NULL,
     CHECK (role IN ('user', 'admin'))
 );

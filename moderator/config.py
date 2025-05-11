@@ -1,7 +1,9 @@
 ### REGISTRATION ###
 AVAILABLE_MAJORS = [
+    "Business Analytics",
     "Data Science and Analytics",
-    "Life Sciences"
+    "Life Sciences",
+    "Quantitative Finance"
 ]
 
 MATRICULATION_AYS = [
@@ -10,10 +12,29 @@ MATRICULATION_AYS = [
     "2024-2025"
 ]
 
-
 ### UPDATING DATABASE ###
 # Set academic year
 ACAD_YEAR = "2024-2025"
+
+# Set semesters
+SEMESTER_LIST = [
+    {
+        "num": 1,
+        "name": "Semester 1"
+    },
+    {
+        "num": 2,
+        "name": "Semester 2"
+    },
+    {
+        "num": 3,
+        "name": "Special Term 1"
+    },
+    {
+        "num": 4,
+        "name": "Special Term 2"
+    }
+]
 
 # Configure retrieval of Disqus information
 DISQUS_RETRIEVAL_LIMIT = 100

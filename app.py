@@ -161,7 +161,7 @@ def display_and_handle_auth_tabs() -> None:
 if "user_details" not in st.session_state:
     # No user details saved in session state - user has not logged in
     # Display placeholder header of app
-    st.header("NUS-Moderator")
+    st.header("NUS-MODerator")
 
     # Display the selection of forms
     display_and_handle_auth_tabs()

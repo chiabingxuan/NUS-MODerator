@@ -13,3 +13,8 @@ WHERE NOT EXISTS (
     WHERE m.department = d.department
 );
 """
+
+COUNT_EXISTING_DEPARTMENTS_QUERY = """
+SELECT COUNT(d.department) AS num_depts
+FROM departments d;
+"""

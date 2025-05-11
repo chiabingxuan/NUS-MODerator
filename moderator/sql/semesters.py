@@ -1,0 +1,6 @@
+INSERT_NEW_SEMESTER_STATEMENT = """
+INSERT INTO semesters
+VALUES (:num, :name)
+ON CONFLICT (num) DO UPDATE SET
+name = EXCLUDED.name;
+"""
