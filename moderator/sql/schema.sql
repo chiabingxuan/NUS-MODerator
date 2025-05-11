@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS modules (
     CHECK (num_mcs >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS acad_years (
+    acad_year VARCHAR(255) PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS semesters (
     num INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -21,9 +25,11 @@ CREATE TABLE IF NOT EXISTS semesters (
 
 CREATE TABLE IF NOT EXISTS offers (
     module_code VARCHAR(255),
+    acad_year VARCHAR(255),
     sem_num INT,
-    PRIMARY KEY (module_code, sem_num),
+    PRIMARY KEY (module_code, acad_year, sem_num),
     FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (acad_year) REFERENCES acad_years(acad_year) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE
 );
 

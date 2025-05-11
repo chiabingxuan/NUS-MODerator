@@ -5,29 +5,25 @@ from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
-from moderator.config import DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
+from moderator.config import ACAD_YEAR, DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
 from moderator.sql.chatbot_setup import GET_MODULE_COMBINED_REVIEWS_QUERY
-import psycopg2
 import os
 import streamlit as st
 import time
 
-PGSQL_DB_NAME = st.secrets["connections"]["nus_moderator"]["database"]
-PGSQL_USERNAME = st.secrets["connections"]["nus_moderator"]["username"]
-PGSQL_PASSWORD = st.secrets["connections"]["nus_moderator"]["password"]
-HOST = st.secrets["connections"]["nus_moderator"]["host"]
-PORT = st.secrets["connections"]["nus_moderator"]["port"]
 PINECONE_INDEX_NAME = st.secrets["PINECONE_INDEX_NAME"]
 
-def make_module_textual_info(conn: psycopg2.extensions.connection, data_folder_path: str, module_documents_filename: str) -> list[Document]:
+def make_module_textual_info(conn: st.connections.SQLConnection, acad_year: str, data_folder_path: str, module_documents_filename: str) -> list[Document]:
     print("Making module textual info...")
 
-    # Create cursor
-    cur = conn.cursor()
-
     # Query the official module description and combined reviews, for each module
-    cur.execute(GET_MODULE_COMBINED_REVIEWS_QUERY)
-    rows_queried = cur.fetchall()
+    rows_queried = conn.query(
+        GET_MODULE_COMBINED_REVIEWS_QUERY,
+        params={
+            "acad_year": acad_year
+        },
+        ttl=0
+    ).values.tolist()
 
     # Loop through each row
     module_documents = list()
@@ -40,8 +36,11 @@ def make_module_textual_info(conn: psycopg2.extensions.connection, data_folder_p
                 
         print(f"Making textual info for {module_name}...")
 
-        # Combine description of module + reviews of module to make a document
-        module_text_with_description = f"{module_description}\n{module_combined_text}"
+        # Combine description of module + combined module reviews (if any) to make a document
+        module_text_with_description = module_description
+        if module_combined_text is not None:
+            module_text_with_description = f"{module_text_with_description}\n{module_combined_text}"
+
         module_document = Document(
             page_content=module_text_with_description,
             metadata={
@@ -112,18 +111,13 @@ def update_vector_store():
     with open(os.path.join(DATA_FOLDER_PATH, DETAILS_FILENAME), "w") as file:
         file.write(details_json)
 
-    # Connect to PostgreSQL database
-    conn = psycopg2.connect(
-        user=PGSQL_USERNAME,
-        password=PGSQL_PASSWORD,
-        database=PGSQL_DB_NAME,
-        host=HOST,
-        port=PORT
-    )
+    # Initialise connection
+    conn = st.connection("nus_moderator", type="sql")
 
     # Get textual info of modules, in the form of documents
     module_documents = make_module_textual_info(
         conn=conn,
+        acad_year=ACAD_YEAR,
         data_folder_path=DATA_FOLDER_PATH,
         module_documents_filename=MODULE_DOCUMENTS_FILENAME
     )

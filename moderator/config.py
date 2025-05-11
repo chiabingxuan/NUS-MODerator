@@ -1,4 +1,5 @@
 ### REGISTRATION ###
+# Set list of majors
 AVAILABLE_MAJORS = [
     "Business Analytics",
     "Data Science and Analytics",
@@ -6,15 +7,16 @@ AVAILABLE_MAJORS = [
     "Quantitative Finance"
 ]
 
-MATRICULATION_AYS = [
+# Set list of academic years. Will also be used as the list of matriculation years
+LIST_OF_AYS = [
     "2022-2023",
     "2023-2024",
     "2024-2025"
 ]
 
 ### UPDATING DATABASE ###
-# Set academic year
-ACAD_YEAR = "2024-2025"
+# Set the current (most recent) academic year
+ACAD_YEAR = LIST_OF_AYS[-1]
 
 # Set semesters
 SEMESTER_LIST = [

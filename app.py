@@ -1,4 +1,4 @@
-from moderator.config import AVAILABLE_MAJORS, MATRICULATION_AYS
+from moderator.config import AVAILABLE_MAJORS, LIST_OF_AYS
 from moderator.sql.users import GET_EXISTING_USER_QUERY, INSERT_NEW_USER_STATEMENT
 import os
 from sqlalchemy import text
@@ -139,7 +139,7 @@ def display_and_handle_auth_tabs() -> None:
             username_input = st.text_input("Username")
             first_name_input = st.text_input("First Name")
             last_name_input = st.text_input("Last Name")
-            matriculation_ay_input = st.selectbox("Matriculation AY", options=MATRICULATION_AYS, index=0)
+            matriculation_ay_input = st.selectbox("Matriculation AY", options=LIST_OF_AYS, index=0)
             major_input = st.selectbox("Major", options=AVAILABLE_MAJORS, index=0)
             password_input = st.text_input("Password", type="password")
             register_button = st.form_submit_button("Register")
