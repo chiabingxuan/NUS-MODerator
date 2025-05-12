@@ -42,12 +42,7 @@ SEMESTER_LIST = [
 DISQUS_RETRIEVAL_LIMIT = 100
 DISQUS_SHORT_NAME = "nusmods-prod"
 
-### CHATBOT SETUP ###
-# Configure saving of files
-DATA_FOLDER_PATH = "data"
-DETAILS_FILENAME = "details.json"
-MODULE_DOCUMENTS_FILENAME = "module_documents.json"
-
+### UPDATE VECTOR STORE ###
 # Configurations for chunk creation
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 100

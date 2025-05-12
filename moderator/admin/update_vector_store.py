@@ -1,19 +1,17 @@
-import json
 from langchain_core.documents.base import Document
-from langchain_core.load import dumps, load
 from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
-from moderator.config import ACAD_YEAR, DATA_FOLDER_PATH, DETAILS_FILENAME, MODULE_DOCUMENTS_FILENAME, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
-from moderator.sql.chatbot_setup import GET_MODULE_COMBINED_REVIEWS_QUERY
+from moderator.config import CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
+from moderator.sql.vector_store_update import GET_MODULE_COMBINED_REVIEWS_QUERY
 import os
 import streamlit as st
 import time
 
 PINECONE_INDEX_NAME = st.secrets["PINECONE_INDEX_NAME"]
 
-def make_module_textual_info(conn: st.connections.SQLConnection, acad_year: str, data_folder_path: str, module_documents_filename: str) -> list[Document]:
+def make_module_textual_info(conn: st.connections.SQLConnection, acad_year: str) -> list[Document]:
     print("Making module textual info...")
 
     # Query the official module description and combined reviews, for each module
@@ -50,28 +48,19 @@ def make_module_textual_info(conn: st.connections.SQLConnection, acad_year: str,
             }
         )
         module_documents.append(module_document)
-    
-    # Save module documents as JSON
-    module_documents_json = dumps(module_documents, pretty=True)
-    with open(os.path.join(data_folder_path, module_documents_filename), "w") as file:
-        file.write(module_documents_json)
-    
+
     return module_documents
 
 
-def make_documents(data_folder_path: str, module_documents_filename: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
+def make_documents(module_documents: list[Document], chunk_size: int, chunk_overlap: int) -> list[Document]:
     print("Making document chunks...")
 
-    # Load the list of module documents
-    with open(os.path.join(data_folder_path, module_documents_filename), "r") as file:
-        documents = load(json.load(file))
-    
     # Split into chunks
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-    document_chunks = text_splitter.split_documents(documents)
+    document_chunks = text_splitter.split_documents(module_documents)
     
     return document_chunks
 
@@ -98,34 +87,19 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
     return vector_store
 
 
-def update_vector_store():
-    # Get epoch
-    epoch = int(time.time())
-
-    # Create data folder, if it does not exist
-    os.makedirs(DATA_FOLDER_PATH, exist_ok=True)
-
-    # Save setup details as JSON
-    details = {"epoch": epoch}
-    details_json = json.dumps(details, indent=4)
-    with open(os.path.join(DATA_FOLDER_PATH, DETAILS_FILENAME), "w") as file:
-        file.write(details_json)
-
+def update_vector_store(acad_year: str):
     # Initialise connection
     conn = st.connection("nus_moderator", type="sql")
 
     # Get textual info of modules, in the form of documents
     module_documents = make_module_textual_info(
         conn=conn,
-        acad_year=ACAD_YEAR,
-        data_folder_path=DATA_FOLDER_PATH,
-        module_documents_filename=MODULE_DOCUMENTS_FILENAME
+        acad_year=acad_year
     )
 
     # Make document chunks
     document_chunks = make_documents(
-        data_folder_path=DATA_FOLDER_PATH,
-        module_documents_filename=MODULE_DOCUMENTS_FILENAME,
+        module_documents=module_documents,
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP
     )

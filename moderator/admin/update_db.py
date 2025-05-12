@@ -1,4 +1,4 @@
-from moderator.config import ACAD_YEAR, DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST
+from moderator.config import DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST
 from moderator.sql.acad_years import INSERT_NEW_ACAD_YEAR_STATEMENT
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT
@@ -282,7 +282,7 @@ def update_offers_table(conn: st.connections.SQLConnection, acad_year: str, avai
         s.commit()
 
 
-def update_db(acad_year: str = ACAD_YEAR) -> None:
+def update_db(acad_year: str) -> None:
     # Initialise connection
     conn = st.connection("nus_moderator", type="sql")
 

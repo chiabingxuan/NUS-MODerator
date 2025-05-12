@@ -10,8 +10,14 @@ ON CONFLICT (code) DO UPDATE SET
 title = EXCLUDED.title, department = EXCLUDED.department, description = EXCLUDED.description, num_mcs = EXCLUDED.num_mcs;
 """
 
-COUNT_EXISTING_MODULES_QUERY = """
+COUNT_CURRENT_MODULES_QUERY = """
 SELECT COUNT(m.code) AS num_modules
-FROM modules m;
+FROM modules m
+WHERE EXISTS (
+    SELECT *
+    FROM offers o
+    WHERE o.module_code = m.code
+    AND o.acad_year = :acad_year
+);
 """
 

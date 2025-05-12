@@ -14,7 +14,14 @@ WHERE NOT EXISTS (
 );
 """
 
-COUNT_EXISTING_DEPARTMENTS_QUERY = """
+COUNT_CURRENT_DEPARTMENTS_QUERY = """
 SELECT COUNT(d.department) AS num_depts
-FROM departments d;
+FROM departments d
+WHERE EXISTS (
+    SELECT *
+    FROM modules m, offers o
+    WHERE d.department = m.department
+    AND m.code = o.module_code
+    AND o.acad_year = :acad_year
+);
 """

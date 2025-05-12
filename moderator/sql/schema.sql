@@ -48,5 +48,6 @@ CREATE TABLE IF NOT EXISTS users (
     matriculation_ay VARCHAR(255) NOT NULL,
     major VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL,
+    FOREIGN KEY (matriculation_ay) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
     CHECK (role IN ('user', 'admin'))
 );

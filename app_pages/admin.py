@@ -1,5 +1,6 @@
 from moderator.admin.update_db import update_db
-from moderator.chatbot.chatbot_setup import update_vector_store
+from moderator.admin.update_vector_store import update_vector_store
+from moderator.config import ACAD_YEAR
 import streamlit as st
 
 @st.dialog("Are you sure you want to proceed?")
@@ -55,11 +56,11 @@ else:
             with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
                 if st.session_state["content_to_update"] == "database":
                     # Update the PostgreSQL database
-                    update_db()
+                    update_db(acad_year=ACAD_YEAR)
 
                 else:
                     # Update Pinecone vector store
-                    update_vector_store()
+                    update_vector_store(acad_year=ACAD_YEAR)
             
             st.success("Update completed! Please refresh the page.")
             st.session_state["content_to_update"] = None

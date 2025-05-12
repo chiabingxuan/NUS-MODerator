@@ -1,5 +1,4 @@
 from moderator.chatbot.chatbot import run_chatbot
-import os
 import streamlit as st
 
 def format_moderator_response(generated_response: dict[str, str]):

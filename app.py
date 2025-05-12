@@ -118,7 +118,11 @@ def handle_guest_sign_in() -> None:
 
 
 def display_and_handle_auth_tabs() -> None:
-    login_tab, register_tab, guest_sign_in_tab = st.tabs(["Login to existing account", "Register for new account", "Sign in as guest"])
+    login_tab, register_tab, guest_sign_in_tab = st.tabs([
+        ":material/login: Login to existing account",
+        ":material/add_circle: Register for new account",
+        ":material/visibility_off: Sign in as guest"
+    ])
 
     # Display login form if user toggles to it
     with login_tab:
@@ -171,6 +175,7 @@ else:
     # Add and run navigation sidebar
     pages = [
         st.Page(os.path.join("app_pages", "home.py"), title="Home"),
+        st.Page(os.path.join("app_pages", "planner.py"), title="Course Planner"),
         st.Page(os.path.join("app_pages", "ama.py"), title="AMA"),
         st.Page(os.path.join("app_pages", "admin.py"), title="Admin"),
         st.Page(os.path.join("app_pages", "about.py"), title="About")
