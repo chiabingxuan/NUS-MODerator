@@ -5,9 +5,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from moderator.config import CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
 from moderator.sql.vector_store_update import GET_MODULE_COMBINED_REVIEWS_QUERY
-import os
 import streamlit as st
-import time
 
 PINECONE_INDEX_NAME = st.secrets["PINECONE_INDEX_NAME"]
 
@@ -87,10 +85,7 @@ def make_and_save_embeddings(document_chunks: list[Document], embeddings_model_n
     return vector_store
 
 
-def update_vector_store(acad_year: str):
-    # Initialise connection
-    conn = st.connection("nus_moderator", type="sql")
-
+def update_vector_store(conn: st.connections.SQLConnection, acad_year: str):
     # Get textual info of modules, in the form of documents
     module_documents = make_module_textual_info(
         conn=conn,

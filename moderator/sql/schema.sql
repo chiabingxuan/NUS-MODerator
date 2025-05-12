@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS acad_years (
 CREATE TABLE IF NOT EXISTS semesters (
     num INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    CHECK (num IN (1, 2, 3, 4))
+    min_mcs NUMERIC(10, 2) NOT NULL,
+    CHECK (num IN (1, 2, 3, 4)),
+    CHECK (min_mcs >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS offers (

@@ -5,7 +5,7 @@ ON CONFLICT (id) DO UPDATE SET
 module_code = EXCLUDED.module_code, message = EXCLUDED.message;
 """
 
-COUNT_CURRENT_REVIEWS_QUERY = """
+COUNT_SPECIFIC_AY_REVIEWS_QUERY = """
 SELECT COUNT(r.id) AS num_reviews
 FROM reviews r
 WHERE EXISTS (

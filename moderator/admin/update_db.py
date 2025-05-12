@@ -4,7 +4,6 @@ from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OU
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT
 from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT
 from moderator.sql.reviews import INSERT_NEW_REVIEW_STATEMENT
-from moderator.sql.semesters import INSERT_NEW_SEMESTER_STATEMENT
 import requests
 from sqlalchemy import text
 import streamlit as st
@@ -237,21 +236,6 @@ def update_acad_years_table(conn: st.connections.SQLConnection, acad_year: str) 
         s.commit()
 
 
-def update_semesters_table(conn: st.connections.SQLConnection, semester_list: list[dict[str, int | str]]) -> None:
-    print("Updating semesters table...")
-
-    with conn.session as s:
-        # Either insert new row for this semester, or:
-        # If semester already exists in table, update the row
-        for sem_data in semester_list:
-            s.execute(
-                text(INSERT_NEW_SEMESTER_STATEMENT),
-                params=sem_data
-            )
-
-        s.commit()
-
-
 def update_offers_table(conn: st.connections.SQLConnection, acad_year: str, available_modules_this_ay: list[dict[str, int | str | list[int]]], semester_list: list[dict[str, int | str]]) -> None:
     # For the available modules this academic year, we need to update the "offers" table
     with conn.session as s:
@@ -282,10 +266,7 @@ def update_offers_table(conn: st.connections.SQLConnection, acad_year: str, avai
         s.commit()
 
 
-def update_db(acad_year: str) -> None:
-    # Initialise connection
-    conn = st.connection("nus_moderator", type="sql")
-
+def update_db(conn: st.connections.SQLConnection, acad_year: str) -> None:
     # Fetch latest information from NUSMods API
     # Get the modules offered, the modules not offered, and the departments available this academic year
     available_modules_this_ay, departments_to_faculties_this_ay = get_module_info_this_acad_year(acad_year=acad_year)
@@ -307,9 +288,6 @@ def update_db(acad_year: str) -> None:
 
     # Update "acad_years" table in PostgreSQL database
     update_acad_years_table(conn=conn, acad_year=acad_year)
-
-    # Update "semesters" table in PostgreSQL database
-    update_semesters_table(conn=conn, semester_list=SEMESTER_LIST)
 
     # Update "offers" table in PostgreSQL database
     update_offers_table(conn=conn, acad_year=acad_year, available_modules_this_ay=available_modules_this_ay, semester_list=SEMESTER_LIST)

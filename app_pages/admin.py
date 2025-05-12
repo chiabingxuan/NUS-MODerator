@@ -20,11 +20,15 @@ def confirm_update(content_to_update: str) -> None:
         # If cancellation is triggered, use a rerun to close the dialog
         st.rerun()
 
+
+# Initialise connection
+conn = st.connection("nus_moderator", type="sql")
+
 # Initialise variable to keep track of to nature of the update requested, if any
 if "content_to_update" not in st.session_state:
     st.session_state["content_to_update"] = None
 
-# Check user permission
+# Verify that user has admin rights
 if st.session_state["user_details"]["username"] is None or st.session_state["user_details"]["role"] != "admin":
     # User is either a guest or is not an admin - no permission to access this page
     with st.container(border=True):
@@ -56,11 +60,11 @@ else:
             with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
                 if st.session_state["content_to_update"] == "database":
                     # Update the PostgreSQL database
-                    update_db(acad_year=ACAD_YEAR)
+                    update_db(conn=conn, acad_year=ACAD_YEAR)
 
                 else:
                     # Update Pinecone vector store
-                    update_vector_store(acad_year=ACAD_YEAR)
+                    update_vector_store(conn=conn, acad_year=ACAD_YEAR)
             
             st.success("Update completed! Please refresh the page.")
             st.session_state["content_to_update"] = None

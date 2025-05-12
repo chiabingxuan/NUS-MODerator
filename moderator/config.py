@@ -1,22 +1,17 @@
 ### REGISTRATION ###
 # Set list of majors
 AVAILABLE_MAJORS = [
+    "Accountancy",
     "Business Analytics",
     "Data Science and Analytics",
     "Life Sciences",
+    "Psychology",
     "Quantitative Finance"
-]
-
-# Set list of academic years. Will also be used as the list of matriculation years
-LIST_OF_AYS = [
-    "2022-2023",
-    "2023-2024",
-    "2024-2025"
 ]
 
 ### UPDATING DATABASE ###
 # Set the current (most recent) academic year
-ACAD_YEAR = LIST_OF_AYS[-1]
+ACAD_YEAR = "2024-2025"
 
 # Set semesters
 SEMESTER_LIST = [
@@ -52,6 +47,10 @@ EMBEDDINGS_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # Configure saving of vector embeddings
 PINECONE_BATCH_SIZE = 500
+
+### COURSE PLANNER ###
+# Set number of years spent in university
+NUM_OF_YEARS_TO_GRAD = 4
 
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved

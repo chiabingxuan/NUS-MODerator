@@ -1,6 +1,5 @@
-INSERT_NEW_SEMESTER_STATEMENT = """
-INSERT INTO semesters
-VALUES (:num, :name)
-ON CONFLICT (num) DO UPDATE SET
-name = EXCLUDED.name;
+GET_SEMESTERS_QUERY = """
+SELECT *
+FROM semesters s
+ORDER BY s.num ASC;
 """
