@@ -37,7 +37,7 @@ if "formatted_responses" not in st.session_state:
     st.session_state["formatted_responses"] = list()
 
 # Display chat messages from history, when app is rerun
-message_display = st.container(height=250)
+message_display = st.container(border=True)
 with message_display:
     for i, message in enumerate(st.session_state["conversation_history"]):
         role = message["role"]

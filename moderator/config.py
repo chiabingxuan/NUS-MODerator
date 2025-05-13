@@ -3,6 +3,7 @@
 AVAILABLE_MAJORS = [
     "Accountancy",
     "Business Analytics",
+    "Computer Science",
     "Data Science and Analytics",
     "Life Sciences",
     "Psychology",
