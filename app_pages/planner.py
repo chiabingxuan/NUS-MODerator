@@ -1,4 +1,4 @@
-from moderator.config import NUM_OF_YEARS_TO_GRAD
+from moderator.config import NUM_OF_YEARS_TO_GRAD, MIN_MCS_TO_GRAD
 from moderator.planner.mod_selection import check_module_selection_for_term, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term
 import streamlit as st
 
@@ -10,7 +10,7 @@ def redirect_to_login() -> None:
     st.session_state.pop("user_details")
 
 
-def display_planner_tabs(conn: st.connections.SQLConnection) -> None:
+def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
     # Get the AYs during which the user will be studying (capped off by current AY)
     first_ay = st.session_state["user_details"]["matriculation_ay"]
     first_ay_index = st.session_state["list_of_ays"].index(first_ay)
@@ -23,6 +23,9 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> None:
     # Structure: Keys are AYs. Values are themselves dictionaries, with keys = sem_num and values = list of module codes for that term
     # NOTE: If this is None, it means the plan has already become invalid somewhere along the line
     plan = dict()
+
+    # Track total number of MCs taken
+    total_mcs_taken = 0.0
 
     # Create planner tabs for these AYs
     planner_tabs = st.tabs(ays_for_user)
@@ -51,6 +54,7 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> None:
 
                 # Check if user's selection is valid
                 result = check_module_selection_for_term(
+                    acad_year=acad_year,
                     selected_module_codes=selected_module_codes,
                     selected_total_mcs=selected_total_mcs,
                     sem_min_mcs=sem_min_mcs,
@@ -66,6 +70,9 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> None:
                         plan[acad_year] = dict()
 
                     plan[acad_year][sem_num] = selected_module_codes
+
+                    # Update total number of MCs taken
+                    total_mcs_taken += selected_total_mcs
                 
                 else:
                     st.error(result["message"])
@@ -75,6 +82,8 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> None:
 
                 is_first_sem_of_ay = False
 
+    return total_mcs_taken
+    
     
 # Initialise connection
 conn = st.connection("nus_moderator", type="sql")
@@ -91,7 +100,12 @@ else:
     # User is registered
     # Display header and introduction
     st.header("Course Planner")
-
+    st.markdown("**Note**: This planner does not take prerequisites into account for AY2022-2023, since we are unable to retrieve prerequisite information for that academic year.")
+    
     # Display buttons to update data
     with st.container(border=True):
-        display_planner_tabs(conn=conn)
+        total_mcs_taken = display_planner_tabs(conn=conn)
+
+    # Display confirmed MCs cleared by user
+    st.markdown(f"**Total MCs cleared**: {total_mcs_taken}")
+    st.markdown(f"**Total MCs required for graduation**: {MIN_MCS_TO_GRAD}")

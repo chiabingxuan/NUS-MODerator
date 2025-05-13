@@ -53,6 +53,9 @@ PINECONE_BATCH_SIZE = 500
 # Set number of years spent in university
 NUM_OF_YEARS_TO_GRAD = 4
 
+# Set minimum number of MCs to graduate
+MIN_MCS_TO_GRAD = 160.0
+
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved
 NUM_DOCUMENTS_RETRIEVED_GENERAL = 4
