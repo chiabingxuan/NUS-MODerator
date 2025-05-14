@@ -53,6 +53,9 @@ PINECONE_BATCH_SIZE = 500
 # Set number of years spent in university
 NUM_OF_YEARS_TO_GRAD = 4
 
+# Set maximum number of MCs for first semester
+MAX_MCS_FIRST_SEM = 23.0
+
 # Set minimum number of MCs to graduate
 MIN_MCS_TO_GRAD = 160.0
 

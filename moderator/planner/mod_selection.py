@@ -77,6 +77,11 @@ def get_total_mcs_for_term(conn: st.connections.SQLConnection, module_codes_for_
 
 
 def get_prereq_tree(module_code: str, acad_year: str) -> dict | None:
+    # NUSMods has no information on prerequisite trees for AY2022-2023. 
+    # Use data from AY2023-2024 instead - it's close enough bro
+    if acad_year == "2022-2023":
+        acad_year = "2023-2024"
+
     # Use NUSMods API to get detailed information about the specified module, for the chosen academic year
     nusmods_endpoint_url = f"https://api.nusmods.com/v2/{acad_year}/modules/{module_code}.json"
     response = requests.get(url=nusmods_endpoint_url)
@@ -157,15 +162,28 @@ def check_if_prereqs_satisfied(prereq_tree: dict | str | None, completed_module_
     return False
 
 
-def check_module_selection_for_term(acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, sem_min_mcs: float, current_plan: dict[str, dict[int, list[str]]] | None) -> dict[str, bool | str]:
-    # Returns a dictionary with keys "is_valid" and (possibly) "message"
-    # If selection is valid, "message" will not exist - otherwise, "message" will be a string corresponding to the error message
+def check_module_selection_for_term(acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, outstanding_mc_balance: float, sem_min_mcs: float, sem_max_mcs: float | None, current_plan: dict[str, dict[int, list[str]]] | None) -> dict[str, bool | str]:
+    # Returns a dictionary with keys "type" and "message"
+    # "type" will be the type of message to be displayed by Streamlit (success / warning / error)
     result = dict()
 
     # Check if plan is already invalid from previous terms
     if current_plan is None:
-        result["is_valid"] = False
+        result["type"] = "error"
         result["message"] = "Module selections for previous terms are already invalid. Please review."
+        return result
+
+    # Check if minimum MC requirement is met. Underloading is only allowed if the user, with this selection, meets
+    # the graduation requirements
+    if selected_total_mcs < sem_min_mcs and selected_total_mcs < outstanding_mc_balance:
+        result["type"] = "error"
+        result["message"] = f"You have not met the minimum requirement of {sem_min_mcs} MCs."
+        return result
+    
+    # Check if maximum MC requirement is met (ie. for first semester)
+    if sem_max_mcs is not None and selected_total_mcs > sem_max_mcs:
+        result["type"] = "error"
+        result["message"] = f"You have exceeded the limit of {sem_max_mcs} MCs."
         return result
 
     # Get the module codes that have already been taken
@@ -184,18 +202,21 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
             module_codes_with_failed_prereqs.append(selected_module_code)
 
     if module_codes_with_failed_prereqs:
-        # There are some modules whose prerequisites have not been taken
-        result["is_valid"] = False
-        result["message"] = f"You have not satisfied the prerequisties for the following modules: {', '.join(module_codes_with_failed_prereqs)}."
-        return result
+        # There are some modules whose prerequisites may not have been taken
+        # We can only give a warning and not an error, because checking for prerequisites using trees alone
+        # would cause users to incorrectly fail the requirements for some modules
 
-    # Check if minimum MC requirement is met
-    if selected_total_mcs < sem_min_mcs:
-        result["is_valid"] = False
-        result["message"] = f"Minimum requirement of {sem_min_mcs} MCs is not met."
+        # Eg. DSA1101 prerequisites: (O Level A Math) OR (MA1301) OR (MA1301FC) OR (MA1301X)
+        # The tree only shows (MA1301) OR (MA1301FC) OR (MA1301X), omitting non-modular requirements
+        # A student that has not taken these modules can still take DSA1101 if he / she has taken A Math,
+        # but he / she will still fail the tree requirements. But it would be unfair to flag an error here
+
+        result["type"] = "warning"
+        result["message"] = f"You may not have satisfied the prerequisites for the following modules: {', '.join(module_codes_with_failed_prereqs)}. Please verify before proceeding."
         return result
     
     # Selection is valid
-    result["is_valid"] = True
+    result["type"] = "success"
+    result["message"] = "Module selection satisfies the requirements!"
     
     return result
