@@ -1,3 +1,4 @@
+import hashlib
 from moderator.admin.update_vector_store import update_vector_store
 from moderator.admin.update_db import update_db
 from moderator.chatbot.chatbot import run_chatbot
