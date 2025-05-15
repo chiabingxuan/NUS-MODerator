@@ -111,7 +111,7 @@ def handle_registration(conn: st.connections.SQLConnection, username_input: str,
                     text(INSERT_NEW_USER_STATEMENT),
                     params={
                         "username": username_input,
-                        "password": password_input,
+                        "password": get_sha256_hash(password_input),        # Hash the valid password using SHA256 algorithm
                         "first_name": first_name_input,
                         "last_name": last_name_input,
                         "matriculation_ay": matriculation_ay_input,
