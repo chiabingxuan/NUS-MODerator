@@ -31,7 +31,7 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
     if "course_default_selections" not in st.session_state:
         st.session_state["course_default_selections"] = {ay: {sem_num: list() for sem_num, _, _ in sem_info} for ay in ays_for_user}
 
-    # Will keep track of the plan, iteratively for each term, based on the user's selections
+    # Will keep track of the plan, building it iteratively from scratch, based on the user's selections for each term
     # Structure: Keys are AYs. Values are themselves dictionaries, with keys = sem_num and values = list of module codes for that term
     # NOTE: If this is None, it means the plan has already become invalid somewhere along the line
     plan = dict()
@@ -68,7 +68,7 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
                 selected_module_names = st.multiselect(
                     label=sem_name,
                     options=module_name_choices,
-                    placeholder="Add modules",
+                    placeholder="Add courses",
                     default=st.session_state["course_default_selections"][acad_year][sem_num],
                     on_change=change_default_selection,
                     args=(acad_year, sem_num),

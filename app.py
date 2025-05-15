@@ -66,7 +66,8 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
         # Get existing user information
         existing_user_info = existing_user_info_df.iloc[0].to_dict()
         password_encrypted, first_name, last_name, matriculation_ay, major, role = existing_user_info["password"], existing_user_info["first_name"], existing_user_info["last_name"], existing_user_info["matriculation_ay"], existing_user_info["major"], existing_user_info["role"]
-        
+        st.write(password_encrypted)
+        st.write(get_sha256_hash(password=password_input))
         # Check if hash of the password input matches with that of the stored encryption
         if get_sha256_hash(password=password_input) != password_encrypted:
             st.error("The password is incorrect.")
@@ -160,8 +161,8 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
             username_input = st.text_input("Username")
             first_name_input = st.text_input("First Name")
             last_name_input = st.text_input("Last Name")
-            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"], index=0)
-            major_input = st.selectbox("Major", options=AVAILABLE_MAJORS, index=0)
+            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"])
+            major_input = st.selectbox("Major", options=AVAILABLE_MAJORS)
             password_input = st.text_input("Password", type="password")
             register_button = st.form_submit_button("Register")
 

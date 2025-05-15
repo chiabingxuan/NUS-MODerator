@@ -170,7 +170,7 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
     # Check if plan is already invalid from previous terms
     if current_plan is None:
         result["type"] = "error"
-        result["message"] = "Module selections for previous terms are already invalid. Please review."
+        result["message"] = "Course selections for previous terms are already invalid. Please review."
         return result
 
     # Check if minimum MC requirement is met. Underloading is only allowed if the user, with this selection, meets
@@ -212,11 +212,11 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
         # but he / she will still fail the tree requirements. But it would be unfair to flag an error here
 
         result["type"] = "warning"
-        result["message"] = f"You may not have satisfied the prerequisites for the following modules: {', '.join(module_codes_with_failed_prereqs)}. Please verify before proceeding."
+        result["message"] = f"You may not have satisfied the prerequisites for the following courses: {', '.join(module_codes_with_failed_prereqs)}. Please verify before proceeding."
         return result
     
     # Selection is valid
     result["type"] = "success"
-    result["message"] = "Module selection satisfies the requirements!"
+    result["message"] = "Course selection satisfies the requirements!"
     
     return result
