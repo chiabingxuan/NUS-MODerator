@@ -10,10 +10,39 @@ def redirect_to_login() -> None:
     st.session_state.pop("user_details")
 
 
+# If a default selection is edited, make sure to remove these modules from subsequent default selections
+# This ensures default selections never include module names from earlier default selections
+def remove_edited_selection_from_subsequent_selections(edited_selection: list[str], subsequent_selection: list[str]) -> None:
+    for module_name in edited_selection:
+        if module_name in subsequent_selection:
+            subsequent_selection.remove(module_name)
+
+
 # Callable to update default selection for a selectbox, when its selection is changed
-def change_default_selection(acad_year: str, sem_num: int):
+def change_default_selection(acad_year: str, sem_num: int, ays_for_user: list[str]) -> None:
+    # Get the edited list of selected modules
     selectbox_key = f"mod_selection_{acad_year}_{sem_num}"
-    st.session_state["course_default_selections"][acad_year][sem_num] = st.session_state[selectbox_key]
+    edited_selection = st.session_state[selectbox_key]
+
+    # Update default selection for that selectbox
+    st.session_state["course_default_selections"][acad_year][sem_num] = edited_selection
+
+    # Get the list of sem_nums after the sem_num corresponding to the edited selectbox, for that same AY
+    sem_nums_in_that_ay = sorted(list(st.session_state["course_default_selections"][acad_year].keys()))
+    subsequent_sem_nums_in_that_ay = sem_nums_in_that_ay[sem_nums_in_that_ay.index(sem_num) + 1:]
+
+    # Get the list of AYs after the AY corresponding to the edited selectbox
+    subsequent_ays = ays_for_user[ays_for_user.index(acad_year) + 1:]
+    
+    # Remove modules in the edited selection, from the subsequent semesters in that same AY
+    for subsequent_sem_num in subsequent_sem_nums_in_that_ay:
+        subsequent_selection = st.session_state["course_default_selections"][acad_year][subsequent_sem_num]
+        remove_edited_selection_from_subsequent_selections(edited_selection=edited_selection, subsequent_selection=subsequent_selection)
+    
+    # Remove modules in the edited selection, from subsequent AYs
+    for subsequent_ay in subsequent_ays:
+        for subsequent_sem_num, subsequent_selection in st.session_state["course_default_selections"][subsequent_ay].items():
+            remove_edited_selection_from_subsequent_selections(edited_selection=edited_selection, subsequent_selection=subsequent_selection)
 
 
 def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
@@ -71,7 +100,7 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
                     placeholder="Add courses",
                     default=st.session_state["course_default_selections"][acad_year][sem_num],
                     on_change=change_default_selection,
-                    args=(acad_year, sem_num),
+                    args=(acad_year, sem_num, ays_for_user),
                     key=f"mod_selection_{acad_year}_{sem_num}"
                 )
                 selected_module_codes = [module_name.split()[0] for module_name in selected_module_names]

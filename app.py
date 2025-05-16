@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 from moderator.config import AVAILABLE_MAJORS
 from moderator.sql.acad_years import GET_LIST_OF_AYS_QUERY
@@ -65,7 +66,7 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
     else:
         # Get existing user information
         existing_user_info = existing_user_info_df.iloc[0].to_dict()
-        password_encrypted, first_name, last_name, matriculation_ay, major, role = existing_user_info["password"], existing_user_info["first_name"], existing_user_info["last_name"], existing_user_info["matriculation_ay"], existing_user_info["major"], existing_user_info["role"]
+        password_encrypted, first_name, last_name, matriculation_ay, major, role, reg_datetime = existing_user_info["password"], existing_user_info["first_name"], existing_user_info["last_name"], existing_user_info["matriculation_ay"], existing_user_info["major"], existing_user_info["role"], existing_user_info["reg_datetime"]
 
         # Check if hash of the password input matches with that of the stored encryption
         if get_sha256_hash(password=password_input) != password_encrypted:
@@ -79,7 +80,8 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                 "last_name": last_name,
                 "matriculation_ay": matriculation_ay,
                 "major": major,
-                "role": role
+                "role": role,
+                "reg_datetime": reg_datetime
             }
 
             st.success("Login successful!")
@@ -106,16 +108,20 @@ def handle_registration(conn: st.connections.SQLConnection, username_input: str,
         else:
             # Registration successful
             # Add new user to database
+            # Hash the password input using SHA256 algorithm
+            hashed_password = get_sha256_hash(password=password_input)
+
             with conn.session as s:
                 s.execute(
                     text(INSERT_NEW_USER_STATEMENT),
                     params={
                         "username": username_input,
-                        "password": get_sha256_hash(password_input),        # Hash the valid password using SHA256 algorithm
+                        "password": hashed_password,
                         "first_name": first_name_input,
                         "last_name": last_name_input,
                         "matriculation_ay": matriculation_ay_input,
-                        "major": major_input
+                        "major": major_input,
+                        "reg_datetime": datetime.datetime.now()
                     }
                 )
 
@@ -160,8 +166,8 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
             username_input = st.text_input("Username")
             first_name_input = st.text_input("First Name")
             last_name_input = st.text_input("Last Name")
-            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"])
-            major_input = st.selectbox("Major", options=AVAILABLE_MAJORS)
+            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"], index=None)
+            major_input = st.selectbox("Major", options=AVAILABLE_MAJORS, index=None)
             password_input = st.text_input("Password", type="password")
             register_button = st.form_submit_button("Register")
 
