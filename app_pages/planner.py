@@ -1,5 +1,5 @@
 from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
-from moderator.planner.mod_selection import check_module_selection_for_term, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term
+from moderator.planner.mod_selection import check_module_selection_for_term, get_credit_internships, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
 import streamlit as st
 
 
@@ -45,7 +45,7 @@ def change_default_selection(acad_year: str, sem_num: int, ays_for_user: list[st
             remove_edited_selection_from_subsequent_selections(edited_selection=edited_selection, subsequent_selection=subsequent_selection)
 
 
-def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
+def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, dict[int, list[str]]], float]:
     # Get the AYs during which the user will be studying (capped off by current AY)
     first_ay = st.session_state["user_details"]["matriculation_ay"]
     first_ay_index = st.session_state["list_of_ays"].index(first_ay)
@@ -53,6 +53,9 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
 
     # Get semester info (list) in the form (sem_num, sem_name, min_mcs)
     sem_info = get_semester_info(conn=conn)
+
+    # Get list of credit-bearing internships
+    credit_internships = get_credit_internships(conn=conn)
 
     # Initialise default selections for selectboxes (memorise user's choices) in session state
     # Structure: Keys are AYs. Values are themselves dictionaries, with keys = sem_num and 
@@ -124,6 +127,7 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
                     outstanding_mc_balance=outstanding_mc_balance,
                     sem_min_mcs=sem_min_mcs,
                     sem_max_mcs=sem_max_mcs,
+                    credit_internships=credit_internships,
                     current_plan=plan
                 )
 
@@ -158,9 +162,27 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> float:
                 is_first_sem_for_user = False
                 is_first_sem_of_ay = False
 
-    return total_mcs_taken
+    return plan, total_mcs_taken
     
+
+@st.dialog("This will overwrite your profile's existing course plan (if any). Are you sure you want to proceed?")
+def confirm_saving_of_plan(conn: st.connections.SQLConnection, username: str, plan: dict[str, dict[int, list[str]]]) -> None:
+    # Add button to confirm saving of plan
+    confirm_button = st.button("Yes")
     
+    # Add button to cancel saving of plan
+    cancel_button = st.button("No")
+
+    if confirm_button:
+        insert_valid_plan_into_db(conn=conn, username=username, plan=plan)
+        st.success("Course plan has been saved!")
+        st.rerun()
+
+    if cancel_button:
+        # If cancellation is triggered, use a rerun to close the dialog
+        st.rerun()
+            
+
 # Initialise connection
 conn = st.connection("nus_moderator", type="sql")
 
@@ -176,14 +198,32 @@ else:
     # User is registered
     # Display header and introduction
     st.header("Course Planner")
-    st.markdown("**Note**: We are unable to retrieve prerequisite information for AY2022-2023 - for this, data from AY2023-2024 is used instead.")
-    
+    st.markdown(
+        """
+        **Note**:
+        - You can only plan for courses up until the current AY.
+        - We are unable to retrieve prerequisite information for AY2022-2023 - for this, data from AY2023-2024 is used instead.
+        - Before saving a course plan to your profile, please make sure that you have fulfilled all prerequisite requirements.
+        """
+    )
+
     # Display buttons to update data
     with st.container(border=True):
-        total_mcs_taken = display_planner_tabs(conn=conn)
+        plan, total_mcs_taken = display_planner_tabs(conn=conn)
+
     st.divider()
 
     # Display confirmed MCs cleared by user
     st.markdown("### Summary")
     st.markdown(f"**Total MCs cleared**: {total_mcs_taken}")
     st.markdown(f"**Total MCs required for graduation**: {MIN_MCS_TO_GRAD}")
+
+    # Functionality to add plan to user records, if the plan is valid
+    username = st.session_state["user_details"]["username"]
+    if plan is not None:
+        # Plan is complete and valid
+        st.markdown("We have detected that your course plan is complete! Click the button below to save it to your profile.")
+        
+        # Allow user to save his / her plan and add it to the database
+        if st.button("Save Plan"):
+            confirm_saving_of_plan(conn=conn, username=username, plan=plan)

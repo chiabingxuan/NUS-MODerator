@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS modules (
     CHECK (num_mcs >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS credit_internships (
+    internship_code VARCHAR(255) PRIMARY KEY, 
+    FOREIGN KEY (internship_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS acad_years (
     acad_year VARCHAR(255) PRIMARY KEY
 );
@@ -53,4 +58,18 @@ CREATE TABLE IF NOT EXISTS users (
     reg_datetime TIMESTAMP NOT NULL,
     FOREIGN KEY (matriculation_ay) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
     CHECK (role IN ('user', 'admin'))
+);
+
+CREATE TABLE IF NOT EXISTS enrollments (
+    username VARCHAR(255),
+    module_code VARCHAR(255),
+    acad_year VARCHAR(255),
+    sem_num INT,
+    rating INT,
+    PRIMARY KEY (username, module_code, acad_year, sem_num),
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (acad_year) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
+    FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE,
+    CHECK (rating >= 1 AND rating <= 10)
 );

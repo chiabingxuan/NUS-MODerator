@@ -1,9 +1,12 @@
+from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
+from moderator.sql.enrollments import DELETE_USER_ENROLLMENT_STATEMENT, INSERT_NEW_ENROLLMENT_STATEMENT
 from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULE_INFO_QUERY
 from moderator.sql.semesters import GET_SEMESTERS_QUERY
 import numpy as np
 import re
 import requests
 import streamlit as st
+from sqlalchemy import text
 
 
 def get_semester_info(conn: st.connections.SQLConnection) -> list[list[int | str | np.float64]]:
@@ -37,6 +40,18 @@ def get_available_modules_for_term(conn: st.connections.SQLConnection, acad_year
     ).values.tolist()
 
     return available_modules
+
+
+def get_credit_internships(conn: st.connections.SQLConnection) -> set[str]:
+    # Query the modules that are credit-bearing internships
+    credit_internships = set(
+        conn.query(
+            GET_CREDIT_INTERNSHIPS_QUERY,
+            ttl=3600
+        )["internship_code"]
+    )
+
+    return credit_internships
 
 
 def get_list_of_mod_choices_for_term(conn: st.connections.SQLConnection, acad_year: str, sem_num: int, current_plan: dict[str, dict[int, list[str]]] | None) -> list[str]:
@@ -162,7 +177,7 @@ def check_if_prereqs_satisfied(prereq_tree: dict | str | None, completed_module_
     return False
 
 
-def check_module_selection_for_term(acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, outstanding_mc_balance: float, sem_min_mcs: float, sem_max_mcs: float | None, current_plan: dict[str, dict[int, list[str]]] | None) -> dict[str, bool | str]:
+def check_module_selection_for_term(acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, outstanding_mc_balance: float, sem_min_mcs: float, sem_max_mcs: float | None, credit_internships: set[str], current_plan: dict[str, dict[int, list[str]]] | None) -> dict[str, bool | str]:
     # Returns a dictionary with keys "type" and "message"
     # "type" will be the type of message to be displayed by Streamlit (success / warning / error)
     result = dict()
@@ -173,9 +188,16 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
         result["message"] = "Course selections for previous terms are already invalid. Please review."
         return result
 
-    # Check if minimum MC requirement is met. Underloading is only allowed if the user, with this selection, meets
-    # the graduation requirements
-    if selected_total_mcs < sem_min_mcs and selected_total_mcs < outstanding_mc_balance:
+    # Check if a credit-bearing internship is being taken
+    is_taking_cred_internship = False
+    for selected_module_code in selected_module_codes:
+        if selected_module_code in credit_internships:
+            is_taking_cred_internship = True
+
+    # Check if minimum MC requirement is met. Underloading is only allowed if:
+    # - The user, with this selection, meets the graduation requirements, or
+    # - The user is taking a credit-bearing internship for the term
+    if selected_total_mcs < sem_min_mcs and selected_total_mcs < outstanding_mc_balance and not is_taking_cred_internship:
         result["type"] = "error"
         result["message"] = f"You have not met the minimum requirement of {sem_min_mcs} MCs."
         return result
@@ -220,3 +242,32 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
     result["message"] = "Course selection satisfies the requirements!"
     
     return result
+
+
+def insert_valid_plan_into_db(conn: st.connections.SQLConnection, username: str, plan: dict[str, dict[int, list[str]]]) -> None:
+    with conn.session as s:
+        # Delete old plans from user
+        s.execute(
+            text(DELETE_USER_ENROLLMENT_STATEMENT),
+            params={
+                "username": username
+            }
+        )
+
+        # Loop through each AY
+        for acad_year, acad_year_plan in plan.items():
+            # Loop through each semester the AY
+            for sem_num, module_codes in acad_year_plan.items():
+                # Add each module into the database
+                for module_code in module_codes:
+                    s.execute(
+                        text(INSERT_NEW_ENROLLMENT_STATEMENT),
+                        params={
+                            "username": username,
+                            "module_code": module_code,
+                            "acad_year": acad_year,
+                            "sem_num": sem_num
+                        }
+                    )
+
+        s.commit()
