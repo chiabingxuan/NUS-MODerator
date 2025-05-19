@@ -1,5 +1,5 @@
 from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
-from moderator.planner.mod_selection import check_module_selection_for_term, get_credit_internships, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
+from moderator.planner.mod_selection import check_module_selection_for_term, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
 import streamlit as st
 
 
@@ -12,14 +12,55 @@ def redirect_to_login() -> None:
 
 # If a default selection is edited, make sure to remove these modules from subsequent default selections
 # This ensures default selections never include module names from earlier default selections
-def remove_edited_selection_from_subsequent_selections(edited_selection: list[str], subsequent_selection: list[str]) -> None:
+def remove_edited_selection_from_subsequent_selections(edited_selection: list[str], subsequent_selection: list[str]) -> list[str]:
     for module_name in edited_selection:
         if module_name in subsequent_selection:
             subsequent_selection.remove(module_name)
 
 
+# If a default selection is edited, we want to ensure that the AY is consistent, with regards to year-long modules
+# For another term in that AY (chosen by us), get the new selection for that term such that this consistency is maintained
+def ensure_year_long_consistency(conn: st.connections.SQLConnection, acad_year: str, edited_sem_num: int, edited_selection: list[str], target_sem_num: int, target_selection: list[str], module_infos: dict[str, dict[str, float | bool]]) -> None:
+    # Get the year-long module names in the selectbox edited, each mapped to the terms that it is offered
+    year_long_module_names_in_edited_selection = dict()
+    for edited_module_name in edited_selection:
+        edited_module_code = edited_module_name.split()[0]
+        edited_module_is_year_long = module_infos[edited_module_code]["is_year_long"]
+        if edited_module_is_year_long:
+            # Get the sem_nums in which this year-long module is being offered, for this AY
+            terms_offered = get_terms_offered_for_module(conn=conn, module_code=edited_module_code, acad_year=acad_year)
+            
+            # Update mapping
+            year_long_module_names_in_edited_selection[edited_module_name] = terms_offered
+
+    # Get new list of module names for the target selection
+    new_target_selection = list()
+    for target_module_name in target_selection:
+        target_module_code = target_module_name.split()[0]
+        target_module_is_year_long = module_infos[target_module_code]["is_year_long"]
+        if target_module_is_year_long:
+            # Get the sem_nums in which this year-long module is being offered, for this AY
+            target_module_terms_offered = get_terms_offered_for_module(conn=conn, module_code=target_module_code, acad_year=acad_year)
+
+            if edited_sem_num in target_module_terms_offered and target_module_name not in year_long_module_names_in_edited_selection:
+                # Year-long module in target selection is also offered in the term corresponding to the edited selection,
+                # but it is not in the edited selection. Must remove it from target selection
+                continue
+
+        # Module should still stay in the target selection
+        new_target_selection.append(target_module_name)
+
+    # Add new year-long modules from the edited selection into the target selection,
+    # if these modules are also offered in the term corresponding to the target selection
+    for year_long_module_name, year_long_module_terms_offered in year_long_module_names_in_edited_selection.items():
+        if year_long_module_name not in new_target_selection and target_sem_num in year_long_module_terms_offered:
+            new_target_selection.append(year_long_module_name)
+
+    return new_target_selection
+
+
 # Callable to update default selection for a selectbox, when its selection is changed
-def change_default_selection(acad_year: str, sem_num: int, ays_for_user: list[str]) -> None:
+def change_default_selection(conn: st.connections.SQLConnection, acad_year: str, sem_num: int, ays_for_user: list[str], module_infos: dict[str, dict[str, float | bool]]) -> None:
     # Get the edited list of selected modules
     selectbox_key = f"mod_selection_{acad_year}_{sem_num}"
     edited_selection = st.session_state[selectbox_key]
@@ -44,12 +85,28 @@ def change_default_selection(acad_year: str, sem_num: int, ays_for_user: list[st
         for subsequent_sem_num, subsequent_selection in st.session_state["course_default_selections"][subsequent_ay].items():
             remove_edited_selection_from_subsequent_selections(edited_selection=edited_selection, subsequent_selection=subsequent_selection)
 
+    # If there are modules that are year-long in the edited selection, ensure that they are consistent across the terms in that AY
+    for sem_num_in_ay in sem_nums_in_that_ay:
+        if sem_num_in_ay != sem_num:
+            # Only need to ensure consistency for the other semesters
+            # Get default selection for the other semester
+            target_selection = st.session_state["course_default_selections"][acad_year][sem_num_in_ay]
+
+            # Get new default selection for the other semester, ensuring consistency in terms of year-long modules
+            new_target_selection = ensure_year_long_consistency(conn=conn, acad_year=acad_year, edited_sem_num=sem_num, edited_selection=edited_selection, target_sem_num=sem_num_in_ay, target_selection=target_selection, module_infos=module_infos)
+
+            # Update target selection
+            st.session_state["course_default_selections"][acad_year][sem_num_in_ay] = new_target_selection
+
 
 def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, dict[int, list[str]]], float]:
     # Get the AYs during which the user will be studying (capped off by current AY)
     first_ay = st.session_state["user_details"]["matriculation_ay"]
     first_ay_index = st.session_state["list_of_ays"].index(first_ay)
     ays_for_user = st.session_state["list_of_ays"][first_ay_index: first_ay_index + NUM_OF_YEARS_TO_GRAD]
+
+    # Get module info required for planner
+    module_infos = get_module_infos(conn=conn)
 
     # Get semester info (list) in the form (sem_num, sem_name, min_mcs)
     sem_info = get_semester_info(conn=conn)
@@ -94,7 +151,13 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, 
                     st.session_state["course_default_selections"][acad_year][sem_num] = list()
 
                 # Get the list of module names to be offered to user
-                module_name_choices = get_list_of_mod_choices_for_term(conn=conn, acad_year=acad_year, sem_num=sem_num, current_plan=plan)
+                module_name_choices = get_list_of_mod_choices_for_term(
+                    conn=conn,
+                    acad_year=acad_year,
+                    sem_num=sem_num,
+                    current_plan=plan,
+                    module_infos=module_infos
+                )
 
                 # Get user's selection of modules
                 selected_module_names = st.multiselect(
@@ -103,13 +166,18 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, 
                     placeholder="Add courses",
                     default=st.session_state["course_default_selections"][acad_year][sem_num],
                     on_change=change_default_selection,
-                    args=(acad_year, sem_num, ays_for_user),
+                    args=(conn, acad_year, sem_num, ays_for_user, module_infos),
                     key=f"mod_selection_{acad_year}_{sem_num}"
                 )
                 selected_module_codes = [module_name.split()[0] for module_name in selected_module_names]
 
                 # Get total number of MCs for the selection
-                selected_total_mcs = get_total_mcs_for_term(conn=conn, module_codes_for_term=selected_module_codes)
+                selected_total_mcs = get_total_mcs_for_term(
+                    conn=conn,
+                    module_infos=module_infos,
+                    module_codes_for_term=selected_module_codes,
+                    acad_year=acad_year
+                )
                 st.markdown(f"**Total MCs**: {selected_total_mcs}")
 
                 # If this is user's first semester, there is a limit to how many MCs he / she can take
@@ -203,6 +271,7 @@ else:
         **Note**:
         - You can only plan for courses up until the current AY.
         - We are unable to retrieve prerequisite information for AY2022-2023 - for this, data from AY2023-2024 is used instead.
+        - This planner does not take preclusions into account.
         - Before saving a course plan to your profile, please make sure that you have fulfilled all prerequisite requirements.
         """
     )
@@ -222,7 +291,7 @@ else:
     username = st.session_state["user_details"]["username"]
     if plan is not None:
         # Plan is complete and valid
-        st.markdown("We have detected that your course plan is complete! Click the button below to save it to your profile.")
+        st.markdown("Your course plan is complete! Click the button below to save it to your profile.")
         
         # Allow user to save his / her plan and add it to the database
         if st.button("Save Plan"):

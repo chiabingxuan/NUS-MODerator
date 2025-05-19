@@ -5,9 +5,9 @@ FROM modules m;
 
 INSERT_NEW_MODULE_STATEMENT = """
 INSERT INTO modules
-VALUES (:code, :title, :department, :description, :num_mcs)
+VALUES (:code, :title, :department, :description, :num_mcs, :is_year_long)
 ON CONFLICT (code) DO UPDATE SET
-title = EXCLUDED.title, department = EXCLUDED.department, description = EXCLUDED.description, num_mcs = EXCLUDED.num_mcs;
+title = EXCLUDED.title, department = EXCLUDED.department, description = EXCLUDED.description, num_mcs = EXCLUDED.num_mcs, is_year_long = EXCLUDED.is_year_long;
 """
 
 COUNT_SPECIFIC_AY_MODULES_QUERY = """
@@ -38,4 +38,16 @@ GET_MODULE_INFO_QUERY = """
 SELECT *
 FROM modules m
 WHERE m.code = :code;
+"""
+
+GET_MODULES_INFO_FOR_PLANNER_QUERY = """
+SELECT m.code, m.num_mcs, m.is_year_long
+FROM modules m;
+"""
+
+GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY = """
+SELECT o.sem_num
+FROM offers o
+WHERE o.module_code = :module_code
+AND o.acad_year = :acad_year;
 """

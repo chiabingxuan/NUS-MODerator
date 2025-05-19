@@ -16,10 +16,10 @@ def display_stats(conn: st.connections.SQLConnection, acad_year: str):
     # Display statistics
     with st.container(border=True):
         st.markdown(f"#### <u>AY{acad_year}</u>", unsafe_allow_html=True)
-        st.markdown(f"##### :red[{num_users}] registered user(s)")
-        st.markdown(f"##### :red[{num_modules}] module(s) offered")
-        st.markdown(f"##### :red[{num_depts}] department(s) in NUS")
-        st.markdown(f"##### :red[{num_reviews}] review(s) posted on NUSMods")
+        st.markdown(f"##### :red[{num_users}] registered users")
+        st.markdown(f"##### :red[{num_modules}] modules offered")
+        st.markdown(f"##### :red[{num_depts}] departments in NUS")
+        st.markdown(f"##### :red[{num_reviews}] reviews posted on NUSMods")
 
 
 # Initialise connection

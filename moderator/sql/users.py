@@ -16,6 +16,6 @@ FROM users u;
 
 MAKE_USER_ADMIN_STATEMENT = """
 UPDATE users
-SET u.role = 'admin'
-WHERE u.username = :username;
+SET role = 'admin'
+WHERE username = :username;
 """

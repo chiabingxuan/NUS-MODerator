@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS modules (
     department VARCHAR(255) NOT NULL,
     description TEXT,
     num_mcs NUMERIC(10, 2) NOT NULL,
+    is_year_long BOOLEAN NOT NULL,
     FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE,
     CHECK (num_mcs >= 0)
 );

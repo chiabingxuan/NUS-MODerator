@@ -29,6 +29,17 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, int |
     for module_info in module_infos:
         # Get details of this module
         module_code, module_title, module_dept, module_faculty, module_description, module_sem_data, module_mcs = module_info["moduleCode"], module_info["title"], module_info["department"], module_info["faculty"], module_info["description"], module_info["semesterData"], module_info["moduleCredit"]
+        
+        # Module is year-long if it is either explicitly mentioned in the attributes, or it is a FYP
+        if "attributes" not in module_info:
+            module_is_year_long = False
+        
+        else:
+            module_attributes = module_info["attributes"]
+            module_is_year_long = module_attributes.get("year", False)
+            module_is_fyp = module_attributes.get("fyp", False)
+            if module_is_fyp:
+                module_is_year_long = True
 
         if not module_sem_data:
             # Semester data is empty for this module - module is not offered this academic year
@@ -53,7 +64,8 @@ def get_module_info_this_acad_year(acad_year: str) -> tuple[list[dict[str, int |
             "department": module_dept,
             "description": module_description,
             "num_mcs": module_mcs,
-            "sems_offered": sems_offered
+            "sems_offered": sems_offered,
+            "is_year_long": module_is_year_long
         })
 
     return available_modules_this_ay, departments_to_faculties_this_ay
@@ -87,7 +99,7 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
         # For the available modules this academic year, we need to update the table
         for available_module in available_modules_this_ay:
             # Get information for this module
-            available_module_code, available_module_title, available_module_dept, available_module_description, available_module_num_mcs = available_module["code"], available_module["title"], available_module["department"], available_module["description"], available_module["num_mcs"]
+            available_module_code, available_module_title, available_module_dept, available_module_description, available_module_num_mcs, available_module_is_year_long = available_module["code"], available_module["title"], available_module["department"], available_module["description"], available_module["num_mcs"], available_module["is_year_long"]
             
             print(f"Adding / updating module information for {available_module_code}...")
 
@@ -100,7 +112,8 @@ def update_modules_table(conn: st.connections.SQLConnection, available_modules_t
                     "title": available_module_title,
                     "department": available_module_dept,
                     "description": available_module_description,
-                    "num_mcs": available_module_num_mcs
+                    "num_mcs": available_module_num_mcs,
+                    "is_year_long": available_module_is_year_long
                 }
             )
         

@@ -56,36 +56,37 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
         # Not all fields are filled up
         st.error("Please ensure that all fields are filled up.")
 
-    # Query the existing user information from database, if any
-    existing_user_info_df = conn.query(GET_EXISTING_USER_QUERY, params={"username": username_input}, ttl=0)
-
-    if len(existing_user_info_df) == 0:
-        # Username does not exist in database
-        st.error("The username does not exist.")
-    
     else:
-        # Get existing user information
-        existing_user_info = existing_user_info_df.iloc[0].to_dict()
-        password_encrypted, first_name, last_name, matriculation_ay, major, role, reg_datetime = existing_user_info["password"], existing_user_info["first_name"], existing_user_info["last_name"], existing_user_info["matriculation_ay"], existing_user_info["major"], existing_user_info["role"], existing_user_info["reg_datetime"]
+        # Query the existing user information from database, if any
+        existing_user_info_df = conn.query(GET_EXISTING_USER_QUERY, params={"username": username_input}, ttl=0)
 
-        # Check if hash of the password input matches with that of the stored encryption
-        if get_sha256_hash(password=password_input) != password_encrypted:
-            st.error("The password is incorrect.")
+        if len(existing_user_info_df) == 0:
+            # Username does not exist in database
+            st.error("The username does not exist.")
         
         else:
-            # Successful login - update session state with user information
-            st.session_state["user_details"] = {
-                "username": username_input,
-                "first_name": first_name,
-                "last_name": last_name,
-                "matriculation_ay": matriculation_ay,
-                "major": major,
-                "role": role,
-                "reg_datetime": reg_datetime
-            }
+            # Get existing user information
+            existing_user_info = existing_user_info_df.iloc[0].to_dict()
+            password_encrypted, first_name, last_name, matriculation_ay, major, role, reg_datetime = existing_user_info["password"], existing_user_info["first_name"], existing_user_info["last_name"], existing_user_info["matriculation_ay"], existing_user_info["major"], existing_user_info["role"], existing_user_info["reg_datetime"]
 
-            st.success("Login successful!")
-            st.rerun()
+            # Check if hash of the password input matches with that of the stored encryption
+            if get_sha256_hash(password=password_input) != password_encrypted:
+                st.error("The password is incorrect.")
+            
+            else:
+                # Successful login - update session state with user information
+                st.session_state["user_details"] = {
+                    "username": username_input,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "matriculation_ay": matriculation_ay,
+                    "major": major,
+                    "role": role,
+                    "reg_datetime": reg_datetime
+                }
+
+                st.success("Login successful!")
+                st.rerun()
 
 
 def handle_registration(conn: st.connections.SQLConnection, username_input: str, password_input: str, first_name_input: str, last_name_input: str, matriculation_ay_input: str, major_input: str) -> None:

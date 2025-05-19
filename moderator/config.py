@@ -5,6 +5,7 @@ AVAILABLE_MAJORS = [
     "Business Analytics",
     "Computer Science",
     "Data Science and Analytics",
+    "Law",
     "Life Sciences",
     "Psychology",
     "Quantitative Finance"

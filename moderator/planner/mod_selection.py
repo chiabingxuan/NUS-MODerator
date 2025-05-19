@@ -1,6 +1,6 @@
 from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
 from moderator.sql.enrollments import DELETE_USER_ENROLLMENT_STATEMENT, INSERT_NEW_ENROLLMENT_STATEMENT
-from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULE_INFO_QUERY
+from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
 from moderator.sql.semesters import GET_SEMESTERS_QUERY
 import numpy as np
 import re
@@ -21,7 +21,7 @@ def get_completed_module_codes_from_plan(current_plan: dict[str, dict[int, list[
 
     for acad_year, acad_year_plan in current_plan.items():
         for sem_num, module_codes in acad_year_plan.items():
-            # We have already ensured that there will never be repeated module codes across the terms
+            # We have already ensured that there will never be repeated module codes across the terms (except for year-long modules)
             # This is because user will only choose among modules that they have not taken yet
             completed_module_codes.extend(module_codes)
 
@@ -54,11 +54,23 @@ def get_credit_internships(conn: st.connections.SQLConnection) -> set[str]:
     return credit_internships
 
 
-def get_list_of_mod_choices_for_term(conn: st.connections.SQLConnection, acad_year: str, sem_num: int, current_plan: dict[str, dict[int, list[str]]] | None) -> list[str]:
+def get_list_of_mod_choices_for_term(conn: st.connections.SQLConnection, acad_year: str, sem_num: int, current_plan: dict[str, dict[int, list[str]]] | None, module_infos: dict[str, dict[str, float | bool]]) -> list[str]:
     # If current plan is None (already invalid), there should be no selections given
     if current_plan is None:
         return list()
     
+    # Get previous term's selection of modules
+    if not current_plan:
+        # If plan is empty (current term is the very first term), set previous term's module selection is empty
+        previous_term_ay = None
+        previous_term_sem_num = None
+        previous_term_module_selection = list()
+
+    else:
+        previous_term_ay = sorted(current_plan.keys())[-1]
+        previous_term_sem_num = sorted(current_plan[previous_term_ay].keys())[-1]
+        previous_term_module_selection = current_plan[previous_term_ay][previous_term_sem_num]
+
     # Get modules offered for this term in this AY - a list of lists in the form (module_code, module_title)
     available_modules = get_available_modules_for_term(conn=conn, acad_year=acad_year, sem_num=sem_num)
 
@@ -66,25 +78,69 @@ def get_list_of_mod_choices_for_term(conn: st.connections.SQLConnection, acad_ye
     completed_module_codes = get_completed_module_codes_from_plan(current_plan=current_plan)
 
     # Get list of formatted names corresponding to all the remaining modules that have not been taken yet
-    module_name_selections = [f"{module_code} {module_title}" for (module_code, module_title) in available_modules if module_code not in completed_module_codes]
+    module_name_selections = list()
+    for module_code, module_title in available_modules:
+        if module_code in completed_module_codes:
+            # Edge case to handle: Module has been completed already, but...
+            # - It is a year-long module
+            # - It was taken in the previous term
+            # - The previous term is still in the same academic year as this current term
+            # Which means this module should still be taken this term
+            module_is_year_long = module_infos[module_code]["is_year_long"]
+            if not (module_is_year_long and module_code in previous_term_module_selection and previous_term_ay == acad_year):
+                # Not the edge case - skip this module as it should not be taken this term
+                continue
+
+        formatted_module_name = f"{module_code} {module_title}"
+        module_name_selections.append(formatted_module_name)
 
     return module_name_selections
 
 
-def get_total_mcs_for_term(conn: st.connections.SQLConnection, module_codes_for_term: list[str]) -> float:
+def get_module_infos(conn: st.connections.SQLConnection) -> dict[str, dict[str, float | bool]]:
+    rows_queried = conn.query(
+        GET_MODULES_INFO_FOR_PLANNER_QUERY,
+        ttl=3600
+    ).values.tolist()
+
+    # Maps each module to its number of MCs, and whether or not it is year-long
+    module_infos = {
+        module_code: {
+            "num_mcs": float(num_mcs),
+            "is_year_long": is_year_long
+        } for module_code, num_mcs, is_year_long in rows_queried
+    }
+
+    return module_infos
+
+
+def get_terms_offered_for_module(conn: st.connections.SQLConnection, module_code: str, acad_year: str) -> list[int]:
+    # Query the modules that are credit-bearing internships
+    terms_offered = list(
+        conn.query(
+            GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY,
+            params={
+                "module_code": module_code,
+                "acad_year": acad_year
+            },
+            ttl=3600
+        )["sem_num"]
+    )
+
+    return terms_offered
+
+
+def get_total_mcs_for_term(conn: st.connections.SQLConnection, module_infos: dict[str, dict[str, float | bool]], module_codes_for_term: list[str], acad_year: str) -> float:
     total_mcs = 0.0
 
     # Get number of MCs for each module chosen for the term
     for module_code in module_codes_for_term:
-        module_mcs = float(
-            conn.query(
-                GET_MODULE_INFO_QUERY,
-                params={
-                    "code": module_code
-                },
-                ttl=3600
-            ).iloc[0]["num_mcs"]
-        )
+        module_mcs, module_is_year_long = module_infos[module_code]["num_mcs"], module_infos[module_code]["is_year_long"]
+
+        # If module is year-long, number of MCs should be divided equally across each term that it is being taken
+        if module_is_year_long:
+            num_sems_taken = len(get_terms_offered_for_module(conn=conn, module_code=module_code, acad_year=acad_year))
+            module_mcs /= num_sems_taken
 
         total_mcs += module_mcs
 

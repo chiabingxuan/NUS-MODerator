@@ -3,6 +3,7 @@ from moderator.admin.update_vector_store import update_vector_store
 from moderator.admin.update_db import update_db
 from moderator.chatbot.chatbot import run_chatbot
 import os
+import requests
 import streamlit as st
 from sqlalchemy import text
 
