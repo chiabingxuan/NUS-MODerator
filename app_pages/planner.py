@@ -3,13 +3,6 @@ from moderator.planner.mod_selection import check_module_selection_for_term, get
 import streamlit as st
 
 
-# Callable for button that redirects user to login page
-def redirect_to_login() -> None:
-    # Remove user details from session state - on rerun, this will trigger the "logged out" state 
-    # and bring out the login forms
-    st.session_state.pop("user_details")
-
-
 # If a default selection is edited, make sure to remove these modules from subsequent default selections
 # This ensures default selections never include module names from earlier default selections
 def remove_edited_selection_from_subsequent_selections(edited_selection: list[str], subsequent_selection: list[str]) -> list[str]:
@@ -254,45 +247,40 @@ def confirm_saving_of_plan(conn: st.connections.SQLConnection, username: str, pl
 # Initialise connection
 conn = st.connection("nus_moderator", type="sql")
 
-# Verify that user is registered
-if st.session_state["user_details"]["username"] is None:
-    # User is a guest - no permission to access this page
-    with st.container(border=True):
-        st.markdown("### Sorry, guests cannot access this feature :(")
-        st.markdown("Please log in to access this feature.")
-        redirect_to_login_button = st.button("Login", on_click=redirect_to_login)
+# User is registered
+# Display header and introduction
+st.header("Course Planner")
+st.markdown(
+    """
+    **Note**:
+    - You can only plan for courses up until the current AY.
+    - We are unable to retrieve prerequisite information for AY2022-2023 - for this, data from AY2023-2024 is used instead.
+    - This planner does not take preclusions into account.
+    - Before saving a course plan to your profile, please make sure that you have fulfilled all prerequisite requirements.
+    """
+)
+
+# Display buttons to update data
+with st.container(border=True):
+    plan, total_mcs_taken = display_planner_tabs(conn=conn)
+
+st.divider()
+
+# Display confirmed MCs cleared by user
+st.markdown("### Summary")
+st.markdown(f"**Total MCs cleared**: {total_mcs_taken}")
+st.markdown(f"**Total MCs required for graduation**: {MIN_MCS_TO_GRAD}")
+
+# Functionality to add plan to user records, if the plan is valid
+username = st.session_state["user_details"]["username"]
+if plan is None:
+    # Plan is invalid
+    st.markdown("Your course plan is incomplete. Please complete it so that you can save it to your profile.")
 
 else:
-    # User is registered
-    # Display header and introduction
-    st.header("Course Planner")
-    st.markdown(
-        """
-        **Note**:
-        - You can only plan for courses up until the current AY.
-        - We are unable to retrieve prerequisite information for AY2022-2023 - for this, data from AY2023-2024 is used instead.
-        - This planner does not take preclusions into account.
-        - Before saving a course plan to your profile, please make sure that you have fulfilled all prerequisite requirements.
-        """
-    )
-
-    # Display buttons to update data
-    with st.container(border=True):
-        plan, total_mcs_taken = display_planner_tabs(conn=conn)
-
-    st.divider()
-
-    # Display confirmed MCs cleared by user
-    st.markdown("### Summary")
-    st.markdown(f"**Total MCs cleared**: {total_mcs_taken}")
-    st.markdown(f"**Total MCs required for graduation**: {MIN_MCS_TO_GRAD}")
-
-    # Functionality to add plan to user records, if the plan is valid
-    username = st.session_state["user_details"]["username"]
-    if plan is not None:
-        # Plan is complete and valid
-        st.markdown("Your course plan is complete! Click the button below to save it to your profile.")
-        
-        # Allow user to save his / her plan and add it to the database
-        if st.button("Save Plan"):
-            confirm_saving_of_plan(conn=conn, username=username, plan=plan)
+    # Plan is complete and valid
+    st.markdown("Your course plan is complete! Click the button below to save it to your profile.")
+    
+    # Allow user to save his / her plan and add it to the database
+    if st.button("Save Plan"):
+        confirm_saving_of_plan(conn=conn, username=username, plan=plan)

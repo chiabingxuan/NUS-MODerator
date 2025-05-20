@@ -85,8 +85,8 @@ if "content_to_update" not in st.session_state:
     st.session_state["content_to_update"] = None
 
 # Verify that user has admin rights
-if st.session_state["user_details"]["username"] is None or st.session_state["user_details"]["role"] != "admin":
-    # User is either a guest or is not an admin - no permission to access this page
+if st.session_state["user_details"]["role"] != "admin":
+    # User is not an admin - no permission to access this page
     with st.container(border=True):
         st.markdown("### Sorry, you are not the chosen one :(")
         st.markdown("You do not have permission to access this page. Please convince Bing Xuan to give you admin rights.")

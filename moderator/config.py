@@ -63,7 +63,7 @@ MIN_MCS_TO_GRAD = 160.0
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved
 NUM_DOCUMENTS_RETRIEVED_GENERAL = 4
-NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 2
+NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 3
 
 # Choose LLM for QA
 LLM_NAME = "deepseek-r1-distill-llama-70b"

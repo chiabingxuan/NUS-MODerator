@@ -18,13 +18,13 @@ def remove_think_from_llm_output(llm_output: str) -> str:
     return actual_llm_response
 
 
-def rephrase_query(query: str, chat_history: list[dict[str, str]], llm: BaseChatModel, rephrase_prompt: str) -> str:
+def rephrase_query(query: str, major: str, chat_history: list[dict[str, str]], llm: BaseChatModel, rephrase_prompt: str) -> str:
     # Chain to get the rephrased query, given the original query and chat history. 
     # At the end of the chain, must remove think tags from LLM output
     get_rephrased_query_chain = rephrase_prompt | llm | StrOutputParser() | RunnableLambda(remove_think_from_llm_output)
     
     # Invoke chain to rephrase query
-    rephrased_query = get_rephrased_query_chain.invoke({"chat_history": chat_history, "input": query})
+    rephrased_query = get_rephrased_query_chain.invoke({"major": major, "chat_history": chat_history, "input": query})
 
     return rephrased_query
 
@@ -44,7 +44,7 @@ def get_list_of_module_codes_for_retrieval(query: str, llm: BaseChatModel, extra
     return module_code_list
 
 
-def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict[str, str]:
+def run_chatbot(query: str, major: str, chat_history: list[dict[str, str]] = list()) -> dict[str, str]:
     # Outline of workflow:
     # 1. Using original query and chat history, have the LLM create a rephrased prompt
     # 2. Have the LLM extract module codes from the rephrased prompt (if any)
@@ -62,13 +62,8 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
     # Initialise LLM
     llm = ChatGroq(model=LLM_NAME, temperature=0)
 
-    # If there is chat history, rephrase query using chat history and LLM
-    if chat_history:
-        rephrased_query = rephrase_query(query=query, chat_history=chat_history, llm=llm, rephrase_prompt=REPHRASE_PROMPT)
-
-    else:
-        # Empty chat history - just use original query
-        rephrased_query = query
+    # Rephrase query using chat history and LLM
+    rephrased_query = rephrase_query(query=query, major=major, chat_history=chat_history, llm=llm, rephrase_prompt=REPHRASE_PROMPT)
     
     # Get module codes relevant for the rephrased query. If all modules are relevant, module_codes is an empty list
     module_codes = get_list_of_module_codes_for_retrieval(query=rephrased_query, llm=llm, extract_module_codes_prompt=EXTRACT_MODULE_CODES_PROMPT)
@@ -113,6 +108,7 @@ def run_chatbot(query: str, chat_history: list[dict[str, str]] = list()) -> dict
     qa_output = stuff_documents_chain.invoke(input={
         "input": query,
         "context": document_chunks,
+        "major": major,
         "chat_history": chat_history
     })
 

@@ -131,21 +131,10 @@ def handle_registration(conn: st.connections.SQLConnection, username_input: str,
             st.success("Registration successful! Please proceed to log in.")
 
 
-def handle_guest_sign_in() -> None:
-    # Update session state with default guest information
-    st.session_state["user_details"] = {
-        "username": None        # for guest, username is None
-    }
-
-    st.success("Guest sign in successful!")
-    st.rerun()
-
-
 def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
-    login_tab, register_tab, guest_sign_in_tab = st.tabs([
+    login_tab, register_tab = st.tabs([
         ":material/login: Login to existing account",
-        ":material/add_circle: Register for new account",
-        ":material/visibility_off: Sign in as guest"
+        ":material/add_circle: Register for new account"
     ])
 
     # Display login form if user toggles to it
@@ -175,15 +164,6 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
         # Try to register upon form submission
         if register_button:
             handle_registration(conn=conn, username_input=username_input, password_input=password_input, first_name_input=first_name_input, last_name_input=last_name_input, matriculation_ay_input=matriculation_ay_input, major_input=major_input)
-
-    # Display guest sign in form if user toggles to it
-    with guest_sign_in_tab:
-        with st.form("guest_sign_in_form"):
-            guest_sign_in_button = st.form_submit_button("Sign in as guest")
-
-        # Sign in as guest upon form submission
-        if guest_sign_in_button:
-            handle_guest_sign_in()
 
 
 # Initialise connection

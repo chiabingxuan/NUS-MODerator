@@ -27,12 +27,7 @@ conn = st.connection("nus_moderator", type="sql")
 
 # Get name to be displayed in welcome message
 username = st.session_state["user_details"]["username"]
-if username is None:
-    # User is anonymous guest
-    display_name = "Guest"
-
-else:
-    display_name = st.session_state["user_details"]["first_name"]
+display_name = st.session_state["user_details"]["first_name"]
 
 # Display header
 st.header(f"Welcome, {display_name}!")

@@ -9,7 +9,7 @@ EXTRACT_MODULE_CODES_TEMPLATE = "Extract all module codes mentioned in the follo
 EXTRACT_MODULE_CODES_PROMPT = PromptTemplate.from_template(EXTRACT_MODULE_CODES_TEMPLATE)
 
 # Prompt that formats each document retrieved
-DOCUMENT_FORMAT_TEMPLATE = "Module: {module_name}\nInformation: {page_content}"
+DOCUMENT_FORMAT_TEMPLATE = "Module: {module_name}\nNUSMods Review: {page_content}"
 DOCUMENT_FORMAT_PROMPT = PromptTemplate.from_template(DOCUMENT_FORMAT_TEMPLATE)
 
 # Prompt that asks LLM to come up with an answer, based on rephrased query and documents retrieved
