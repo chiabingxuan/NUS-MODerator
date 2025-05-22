@@ -233,16 +233,22 @@ def check_if_prereqs_satisfied(prereq_tree: dict | str | None, completed_module_
     return False
 
 
+def convert_plan_to_frozenset_format(plan: dict[str, dict[int, list[str]]]) -> tuple[frozenset[str]]:
+    # Structure of frozenset format: Tuple of frozensets, one frozenset per term representing the set of module codes
+    # taken that term. Frozensets are in chronological order of terms
+    frozensets_of_module_codes = list()
+    for acad_year, acad_year_plan in plan.items():
+        for sem_num, module_codes in acad_year_plan.items():
+            module_codes_for_term = frozenset(module_codes)
+            frozensets_of_module_codes.append(module_codes_for_term)
+    
+    return tuple(frozensets_of_module_codes)
+
+
 def check_module_selection_for_term(acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, outstanding_mc_balance: float, sem_min_mcs: float, sem_max_mcs: float | None, credit_internships: set[str], current_plan: dict[str, dict[int, list[str]]] | None) -> dict[str, bool | str]:
     # Returns a dictionary with keys "type" and "message"
     # "type" will be the type of message to be displayed by Streamlit (success / warning / error)
     result = dict()
-
-    # Check if plan is already invalid from previous terms
-    if current_plan is None:
-        result["type"] = "error"
-        result["message"] = "Course selections for previous terms are already invalid. Please review."
-        return result
 
     # Check if a credit-bearing internship is being taken
     is_taking_cred_internship = False

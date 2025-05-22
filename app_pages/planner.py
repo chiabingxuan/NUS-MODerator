@@ -1,5 +1,5 @@
 from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
-from moderator.planner.mod_selection import check_module_selection_for_term, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
+from moderator.planner.mod_selection import check_module_selection_for_term, convert_plan_to_frozenset_format, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
 import streamlit as st
 
 
@@ -92,6 +92,51 @@ def change_default_selection(conn: st.connections.SQLConnection, acad_year: str,
             st.session_state["course_default_selections"][acad_year][sem_num_in_ay] = new_target_selection
 
 
+def handle_user_selection_for_term(selected_module_codes: list[str], plan: dict[str, dict[int, list[str]]] | None, acad_year: str, selected_total_mcs: float, outstanding_mc_balance: float, sem_min_mcs: float, sem_max_mcs: float, credit_internships: set[str]) -> tuple[str, str]:
+    # Check if plan is already invalid from previous terms
+    if plan is None:
+        message_type = "error"
+        message = "Course selections for previous terms are already invalid. Please review."
+        return message_type, message
+
+    # Check if user's selection is valid
+    # Get course plan with the user's new selection, in frozenset format
+    plan_with_new_selection_frozenset = convert_plan_to_frozenset_format(plan=plan) + (frozenset(selected_module_codes),)
+    
+    if plan_with_new_selection_frozenset in st.session_state["course_plans_checked"]:
+        # If course plan (with the user's new selection) has already been checked before,
+        # simply get the result from the session state
+        # Result comprises of: 
+        # - Type of Streamlit display message that the user will receive
+        # - The message content
+        message_type = st.session_state["course_plans_checked"][plan_with_new_selection_frozenset]["message_type"]
+        message = st.session_state["course_plans_checked"][plan_with_new_selection_frozenset]["message"]
+
+    else:
+        # Check whether or not the new selection is valid
+        result = check_module_selection_for_term(
+            acad_year=acad_year,
+            selected_module_codes=selected_module_codes,
+            selected_total_mcs=selected_total_mcs,
+            outstanding_mc_balance=outstanding_mc_balance,
+            sem_min_mcs=sem_min_mcs,
+            sem_max_mcs=sem_max_mcs,
+            credit_internships=credit_internships,
+            current_plan=plan
+        )
+
+        message_type = result["type"]
+        message = result["message"]
+
+        # Add course plan with the new selection (frozenset format) to session state for memoisation
+        st.session_state["course_plans_checked"][plan_with_new_selection_frozenset] = {
+            "message_type": message_type,
+            "message": message
+        }
+
+    return message_type, message
+
+
 def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, dict[int, list[str]]], float]:
     # Get the AYs during which the user will be studying (capped off by current AY)
     first_ay = st.session_state["user_details"]["matriculation_ay"]
@@ -180,27 +225,31 @@ def display_planner_tabs(conn: st.connections.SQLConnection) -> tuple[dict[str, 
                 else:
                     sem_max_mcs = None
 
-                # Check if user's selection is valid
-                result = check_module_selection_for_term(
-                    acad_year=acad_year,
+                # Check user's module selection for the new term, based on his / her current plan, and get the validation results
+                # Result comprises of: 
+                # - Type of Streamlit display message that the user will receive
+                # - The message content
+                message_type, message = handle_user_selection_for_term(
                     selected_module_codes=selected_module_codes,
+                    plan=plan,
+                    acad_year=acad_year,
                     selected_total_mcs=selected_total_mcs,
                     outstanding_mc_balance=outstanding_mc_balance,
                     sem_min_mcs=sem_min_mcs,
                     sem_max_mcs=sem_max_mcs,
-                    credit_internships=credit_internships,
-                    current_plan=plan
+                    credit_internships=credit_internships
                 )
-
+                
                 # Display results of validation
                 message_function = {
                     "success": st.success,
                     "warning": st.warning,
                     "error": st.error
                 }
-                message_function[result["type"]](result["message"])
+                message_function[message_type](message)
 
-                if result["type"] == "success" or result["type"] == "warning":
+                # Update plan based on validation results
+                if message_type == "success" or message_type == "warning":
                     # Allow user to proceed - update the plan
                     if acad_year not in plan:
                         plan[acad_year] = dict()
@@ -246,6 +295,13 @@ def confirm_saving_of_plan(conn: st.connections.SQLConnection, username: str, pl
 
 # Initialise connection
 conn = st.connection("nus_moderator", type="sql")
+
+# Initialise dictionary of plans that have already been checked for their validity
+# Format of course plan (keys): Tuple of frozensets, one frozenset per term representing the set of module codes
+# taken that term. Frozensets are in chronological order of terms
+# Values of dictionary: A dictionary consisting of the type of Streamlit display message that the user will receive, alongside the message content
+if "course_plans_checked" not in st.session_state:
+    st.session_state["course_plans_checked"] = dict()
 
 # User is registered
 # Display header and introduction
