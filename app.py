@@ -1,11 +1,13 @@
 import datetime
 import hashlib
 from moderator.config import AVAILABLE_MAJORS
+from moderator.helpers.utils import get_formatted_user_enrollments_from_db
 from moderator.sql.acad_years import GET_LIST_OF_AYS_QUERY
 from moderator.sql.users import GET_EXISTING_USER_QUERY, INSERT_NEW_USER_STATEMENT
 import os
 from sqlalchemy import text
 import streamlit as st
+import time
 import torch
 
 # Keep this here to avoid RuntimeError during launch
@@ -74,7 +76,11 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                 st.error("The password is incorrect.")
             
             else:
-                # Successful login - update session state with user information
+                # Successful login
+                # Get a formatted dictionary of the courses taken by the user
+                formatted_user_enrollments = get_formatted_user_enrollments_from_db(conn=conn, username=username_input)
+
+                # Update session state with user information
                 st.session_state["user_details"] = {
                     "username": username_input,
                     "first_name": first_name,
@@ -82,10 +88,12 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                     "matriculation_ay": matriculation_ay,
                     "major": major,
                     "role": role,
-                    "reg_datetime": reg_datetime
+                    "reg_datetime": reg_datetime,
+                    "user_enrollments": formatted_user_enrollments
                 }
 
                 st.success("Login successful!")
+                time.sleep(1)
                 st.rerun()
 
 
@@ -179,6 +187,7 @@ pages = [
     st.Page(os.path.join("app_pages", "home.py"), title="Home"),
     st.Page(os.path.join("app_pages", "planner.py"), title="Course Planner"),
     st.Page(os.path.join("app_pages", "ama.py"), title="AMA"),
+    st.Page(os.path.join("app_pages", "profile.py"), title="Profile"),
     st.Page(os.path.join("app_pages", "admin.py"), title="Admin"),
     st.Page(os.path.join("app_pages", "about.py"), title="About")
 ]

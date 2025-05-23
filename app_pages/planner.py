@@ -1,6 +1,8 @@
 from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
+from moderator.helpers.utils import get_formatted_user_enrollments_from_db
 from moderator.planner.mod_selection import check_module_selection_for_term, convert_plan_to_frozenset_format, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
 import streamlit as st
+import time
 
 
 # If a default selection is edited, make sure to remove these modules from subsequent default selections
@@ -284,8 +286,17 @@ def confirm_saving_of_plan(conn: st.connections.SQLConnection, username: str, pl
     cancel_button = st.button("No")
 
     if confirm_button:
+        # Add plan to database
         insert_valid_plan_into_db(conn=conn, username=username, plan=plan)
+
+        # Get formatted plan from database
+        formatted_plan = get_formatted_user_enrollments_from_db(conn=conn, username=username)
+
+        # Update session state with this updated and formatted plan
+        st.session_state["user_details"]["user_enrollments"] = formatted_plan
+        
         st.success("Course plan has been saved!")
+        time.sleep(1)
         st.rerun()
 
     if cancel_button:

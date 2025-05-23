@@ -4,6 +4,7 @@ from moderator.admin.update_vector_store import update_vector_store
 from moderator.config import ACAD_YEAR
 import streamlit as st
 
+
 @st.dialog("Are you sure you want to proceed?")
 def confirm_update(content_to_update: str) -> None:
     # Add button to confirm update
@@ -25,7 +26,7 @@ def confirm_update(content_to_update: str) -> None:
 def display_update_db_panel(conn: st.connections.SQLConnection) -> None:
     # Display buttons to update data
     with st.container(border=True):
-        st.markdown("### Update Data")
+        st.markdown("#### Update Data")
 
         # Display update buttons if they have not been clicked
         if st.session_state["content_to_update"] is None:
@@ -54,7 +55,7 @@ def display_update_db_panel(conn: st.connections.SQLConnection) -> None:
 
 def display_admin_panel(conn: st.connections.SQLConnection):
     with st.form("admin_panel"):
-        st.markdown("### Grant Admin Rights")
+        st.markdown("#### Grant Admin Rights")
         st.markdown("Select the username to give admin rights to:")
 
         # Input target username
