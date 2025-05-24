@@ -72,5 +72,5 @@ CREATE TABLE IF NOT EXISTS enrollments (
     FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (acad_year) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
     FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE,
-    CHECK (rating >= 1 AND rating <= 10)
+    CHECK (rating >= 0 AND rating <= 10)
 );

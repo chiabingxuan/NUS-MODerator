@@ -1,6 +1,6 @@
 from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
-from moderator.helpers.utils import get_formatted_user_enrollments_from_db
-from moderator.planner.mod_selection import check_module_selection_for_term, convert_plan_to_frozenset_format, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_semester_info, get_total_mcs_for_term, insert_valid_plan_into_db
+from moderator.helpers.utils import get_formatted_user_enrollments_from_db, get_semester_info
+from moderator.planner.mod_selection import check_module_selection_for_term, convert_plan_to_frozenset_format, get_credit_internships, get_module_infos, get_terms_offered_for_module, get_list_of_mod_choices_for_term, get_total_mcs_for_term, insert_valid_plan_into_db
 import streamlit as st
 import time
 

@@ -1,19 +1,11 @@
+from moderator.helpers.utils import get_semester_name_to_num_mapping
 from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
-from moderator.sql.enrollments import DELETE_USER_ENROLLMENT_STATEMENT, INSERT_NEW_ENROLLMENT_STATEMENT
+from moderator.sql.enrollments import DELETE_USER_ENROLLMENT_STATEMENT, INSERT_NEW_ENROLLMENT_STATEMENT, GET_ENROLLMENTS_OF_USER_QUERY
 from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
-from moderator.sql.semesters import GET_SEMESTERS_QUERY
-import numpy as np
 import re
 import requests
 import streamlit as st
 from sqlalchemy import text
-
-
-def get_semester_info(conn: st.connections.SQLConnection) -> list[list[int | str | np.float64]]:
-    # Get list of lists in the form (sem_num, sem_name, min_mcs)
-    sem_info = conn.query(GET_SEMESTERS_QUERY, ttl=3600).values.tolist()
-
-    return sem_info
 
 
 def get_completed_module_codes_from_plan(current_plan: dict[str, dict[int, list[str]]]) -> list[str]:
@@ -307,29 +299,58 @@ def check_module_selection_for_term(acad_year: str, selected_module_codes: list[
 
 
 def insert_valid_plan_into_db(conn: st.connections.SQLConnection, username: str, plan: dict[str, dict[int, list[str]]]) -> None:
+    # Loop through each AY to get set of new enrollments in the form (acad_year, sem_num, module_code)
+    new_enrollments = set()
+    for acad_year, acad_year_plan in plan.items():
+        # Loop through each semester in the AY
+        for sem_num, module_codes in acad_year_plan.items():
+            # Update list of new enrollments
+            for module_code in module_codes:
+                new_enrollments.add((acad_year, sem_num, module_code))
+    
+    # Get dictionary that maps semester names to semester numbers
+    sem_names_to_nums = get_semester_name_to_num_mapping(conn=conn)
+    
+    # Query existing enrollments
+    # List of lists in the form (acad_year, sem_name, module_code, module_title, rating)
+    existing_enrollments_rows_queried = conn.query(
+        GET_ENROLLMENTS_OF_USER_QUERY,
+        params={
+            "username": username
+        },
+        ttl=0
+    ).values.tolist()
+    
     with conn.session as s:
-        # Delete old plans from user
-        s.execute(
-            text(DELETE_USER_ENROLLMENT_STATEMENT),
-            params={
-                "username": username
-            }
-        )
+        # Loop through each existing enrollment
+        for acad_year, sem_name, module_code, module_title, rating in existing_enrollments_rows_queried:
+            # Get existing enrollment
+            sem_num = sem_names_to_nums[sem_name]
+            existing_enrollment = (acad_year, sem_num, module_code)
 
-        # Loop through each AY
-        for acad_year, acad_year_plan in plan.items():
-            # Loop through each semester the AY
-            for sem_num, module_codes in acad_year_plan.items():
-                # Add each module into the database
-                for module_code in module_codes:
-                    s.execute(
-                        text(INSERT_NEW_ENROLLMENT_STATEMENT),
-                        params={
-                            "username": username,
-                            "module_code": module_code,
-                            "acad_year": acad_year,
-                            "sem_num": sem_num
-                        }
-                    )
+            # Check if existing enrollment is also part of the user's new course plan
+            if existing_enrollment not in new_enrollments:
+                # Existing enrollment not in new plan - to be deleted
+                s.execute(
+                    text(DELETE_USER_ENROLLMENT_STATEMENT),
+                    params={
+                        "username": username,
+                        "module_code": module_code,
+                        "acad_year": acad_year,
+                        "sem_num": sem_num 
+                    }
+                )
+
+        # Loop through each new enrollment
+        for acad_year, sem_num, module_code in new_enrollments:
+            s.execute(
+                text(INSERT_NEW_ENROLLMENT_STATEMENT),
+                params={
+                    "username": username,
+                    "module_code": module_code,
+                    "acad_year": acad_year,
+                    "sem_num": sem_num
+                }
+            )
 
         s.commit()
