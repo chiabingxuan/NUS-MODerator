@@ -1,9 +1,36 @@
+from moderator.sql.departments import COUNT_SPECIFIC_AY_DEPARTMENTS_QUERY
 from moderator.sql.enrollments import GET_ENROLLMENTS_OF_USER_QUERY
+from moderator.sql.modules import COUNT_SPECIFIC_AY_MODULES_QUERY
+from moderator.sql.reviews import COUNT_SPECIFIC_AY_REVIEWS_QUERY
 from moderator.sql.semesters import GET_SEMESTERS_QUERY
+from moderator.sql.users import COUNT_CURRENT_USERS_QUERY, COUNT_CURRENT_USERS_BY_DATE_QUERY
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 
+### GETTING STATISTICS ###
+def get_general_statistics(conn: st.connections.SQLConnection, acad_year: str) -> tuple[int, int, int, int]:
+    # Get general statistics to display in home page
+    num_depts = conn.query(COUNT_SPECIFIC_AY_DEPARTMENTS_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_depts"]
+    num_modules = conn.query(COUNT_SPECIFIC_AY_MODULES_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_modules"]
+    num_reviews = conn.query(COUNT_SPECIFIC_AY_REVIEWS_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_reviews"]
+    num_users = conn.query(COUNT_CURRENT_USERS_QUERY, params={"acad_year": acad_year}, ttl=0).iloc[0]["num_users"]
+
+    return num_depts, num_modules, num_reviews, num_users
+
+
+def get_user_growth_statistics(conn: st.connections.SQLConnection) -> pd.DataFrame:
+    # Query the number of new registered users per date, in a dataframe
+    new_users_by_date_df = conn.query(COUNT_CURRENT_USERS_BY_DATE_QUERY, ttl=0)
+
+    # Add a column that corresponds to the running total number of registered users over time
+    new_users_by_date_df["cumulative_num_registered"] = new_users_by_date_df["num_users_registered"].cumsum()
+
+    return new_users_by_date_df
+
+
+### HANDLING SEMESTER DATA ###
 def get_semester_info(conn: st.connections.SQLConnection) -> list[list[int | str | np.float64]]:
     # Get list of lists in the form (sem_num, sem_name, min_mcs)
     sem_info = conn.query(GET_SEMESTERS_QUERY, ttl=3600).values.tolist()
@@ -24,6 +51,7 @@ def get_semester_name_to_num_mapping(conn: st.connections.SQLConnection) -> dict
     return sem_names_to_nums
 
 
+### FORMATTING ENROLLMENTS ###
 def format_user_enrollments_from_db(user_enrollments: list[str]) -> dict[str, dict[str, list[dict[str, str | int]]]]:
     # Format: Keys are AYs. Values are themselves dictionaries, with keys = semester name and 
     # values = list of modules taken for that semester
