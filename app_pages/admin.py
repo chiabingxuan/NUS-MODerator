@@ -1,7 +1,5 @@
-from moderator.admin.give_admin_rights import get_existing_user_details, make_user_admin
-from moderator.admin.update_db import update_db
-from moderator.admin.update_vector_store import update_vector_store
 from moderator.config import ACAD_YEAR
+from moderator.utils.user import Admin
 import streamlit as st
 
 
@@ -23,7 +21,7 @@ def confirm_update(content_to_update: str) -> None:
         st.rerun()
 
 
-def display_update_db_panel(conn: st.connections.SQLConnection) -> None:
+def display_update_db_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:
     # Display buttons to update data
     with st.container(border=True):
         st.markdown("#### Update Data")
@@ -43,17 +41,17 @@ def display_update_db_panel(conn: st.connections.SQLConnection) -> None:
             with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
                 if st.session_state["content_to_update"] == "database":
                     # Update the PostgreSQL database
-                    update_db(conn=conn, acad_year=ACAD_YEAR)
+                    admin.update_db(conn=conn, acad_year=ACAD_YEAR)
 
                 else:
                     # Update Pinecone vector store
-                    update_vector_store(conn=conn, acad_year=ACAD_YEAR)
+                    admin.update_vector_store(conn=conn, acad_year=ACAD_YEAR)
             
             st.success("Update completed! Please refresh the page.")
             st.session_state["content_to_update"] = None
 
 
-def display_admin_panel(conn: st.connections.SQLConnection):
+def display_admin_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:
     with st.form("admin_panel"):
         st.markdown("#### Grant Admin Rights")
         st.markdown("Select the username to give admin rights to:")
@@ -64,41 +62,31 @@ def display_admin_panel(conn: st.connections.SQLConnection):
             if not username_to_give_admin:
                 st.error("Please ensure that the username field is filled up.")
             
+            # Try to grant admin rights, and check whether or not it is successful
+            elif admin.make_user_admin(conn=conn, username=username_to_give_admin):
+                # Action is successful
+                st.success("Admin rights have been granted!")
+            
             else:
-                # Query the existing user information from database, if any
-                existing_user_info_df = get_existing_user_details(conn=conn, username=username_to_give_admin)
-
-                if len(existing_user_info_df) == 0:
-                    # Username does not exist in database
-                    st.error("The username does not exist.")
-                
-                else:
-                    # Username exists - give admin rights
-                    make_user_admin(conn=conn, username=username_to_give_admin)
-                    st.success("Admin rights have been granted!")
+                # Action is not successful - username does not exist in database
+                st.error("The username does not exist.")
 
 
-# Initialise connection
-conn = st.connection("nus_moderator", type="sql")
+# Retrieve connection from session state
+conn = st.session_state["conn"]
+
+# Retrieve user from session state
+user = st.session_state["user"]
 
 # Initialise variable to keep track of to nature of the update requested, if any
 if "content_to_update" not in st.session_state:
     st.session_state["content_to_update"] = None
 
-# Verify that user has admin rights
-if st.session_state["user_details"]["role"] != "admin":
-    # User is not an admin - no permission to access this page
-    with st.container(border=True):
-        st.markdown("### Sorry, you are not the chosen one :(")
-        st.markdown("You do not have permission to access this page. Please convince Bing Xuan to give you admin rights.")
+# Display header
+st.header("Admin")
 
-else:
-    # User is an admin
-    # Display header
-    st.header("Admin Workspace")
+# Display panel to update databases (ie. for the new AY)
+display_update_db_panel(conn=conn, admin=user)
 
-    # Display panel to update databases (ie. for the new AY)
-    display_update_db_panel(conn=conn)
-
-    # Display panel to manage admins
-    display_admin_panel(conn=conn)
+# Display panel to manage admins
+display_admin_panel(conn=conn, admin=user)

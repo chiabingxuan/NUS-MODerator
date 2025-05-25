@@ -22,12 +22,12 @@ def display_stats(conn: st.connections.SQLConnection, acad_year: str):
         st.markdown(f"##### :red[{num_reviews}] reviews posted on NUSMods")
 
 
-# Initialise connection
-conn = st.connection("nus_moderator", type="sql")
+# Retrieve connection from session state
+conn = st.session_state["conn"]
 
 # Get name to be displayed in welcome message
-username = st.session_state["user_details"]["username"]
-display_name = st.session_state["user_details"]["first_name"]
+user = st.session_state["user"]
+display_name = user.first_name
 
 # Display header
 st.header(f"Welcome, {display_name}!")

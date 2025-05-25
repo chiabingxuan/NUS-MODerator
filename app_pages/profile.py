@@ -1,36 +1,32 @@
-from moderator.helpers.utils import get_semester_name_to_num_mapping, get_formatted_user_enrollments_from_db
 from moderator.profile.ratings import update_ratings
+from moderator.utils.helpers import get_semester_name_to_num_mapping, get_formatted_user_enrollments_from_db
+from moderator.utils.user import User
 import numpy as np
 import pandas as pd
 import streamlit as st
 import time
 
 
-def display_personal_particulars() -> str:
+def display_personal_particulars(user: User):
     with st.container(border=True):
         st.markdown("#### Personal Particulars")
 
         # Display username
-        username = st.session_state["user_details"]["username"]
-        st.markdown(f"**Username**: {username}")
+        st.markdown(f"**Username**: {user.username}")
 
         # Display name
-        full_name = f"{st.session_state["user_details"]["first_name"]} {st.session_state["user_details"]["last_name"]}"
+        full_name = f"{user.first_name} {user.last_name}"
         st.markdown(f"**Name**: {full_name}")
 
         # Display major
-        major = st.session_state["user_details"]["major"]
-        st.markdown(f"**Major**: {major}")
+        st.markdown(f"**Major**: {user.major}")
 
         # Display matriculation AY
-        matriculation_ay = st.session_state["user_details"]["matriculation_ay"]
-        st.markdown(f"**Matriculation AY**: {matriculation_ay}")
-    
-    return username
+        st.markdown(f"**Matriculation AY**: {user.matriculation_ay}")
 
 
 @st.dialog("This will overwrite your previous ratings for these courses (if any). Are you sure you want to proceed?")
-def confirm_saving_of_ratings(conn: st.connections.SQLConnection, username: str, ratings_list: list[str | int]) -> None:
+def confirm_saving_of_ratings(conn: st.connections.SQLConnection, user: User, ratings_list: list[str | int]) -> None:
     # Add button to confirm saving of plan
     confirm_button = st.button("Yes")
     
@@ -42,13 +38,13 @@ def confirm_saving_of_ratings(conn: st.connections.SQLConnection, username: str,
         sem_names_to_nums = get_semester_name_to_num_mapping(conn=conn)
 
         # Save ratings to database
-        update_ratings(conn=conn, username=username, ratings_list=ratings_list, sem_names_to_nums=sem_names_to_nums)
+        update_ratings(conn=conn, username=user.username, ratings_list=ratings_list, sem_names_to_nums=sem_names_to_nums)
         
         # Get formatted plan from database (with updated ratings)
-        formatted_plan = get_formatted_user_enrollments_from_db(conn=conn, username=username)
+        formatted_plan = get_formatted_user_enrollments_from_db(conn=conn, username=user.username)
 
-        # Update session state with this updated and formatted plan
-        st.session_state["user_details"]["user_enrollments"] = formatted_plan
+        # Update user with this updated and formatted plan
+        user.user_enrollments = formatted_plan
 
         st.success("Ratings have been saved!")
         time.sleep(1)
@@ -59,12 +55,12 @@ def confirm_saving_of_ratings(conn: st.connections.SQLConnection, username: str,
         st.rerun()
             
 
-def display_user_enrollments(conn: st.connections.SQLConnection, username: str) -> None:
+def display_user_enrollments(conn: st.connections.SQLConnection, user: User) -> None:
     with st.container(border=True):
         st.markdown("#### Your Courses")
 
         # Get the valid and formatted course plan of user
-        user_enrollments = st.session_state["user_details"]["user_enrollments"]
+        user_enrollments = user.user_enrollments
 
         # If user has not saved any courses, inform him / her about it
         if not user_enrollments:
@@ -79,14 +75,8 @@ def display_user_enrollments(conn: st.connections.SQLConnection, username: str) 
         ratings_dfs = list()     # To store ratings in the form (acad_year, sem_name, sem_num, module_code, rating)
         for acad_year, acad_year_tab in zip(ays_in_enrollments, course_records_tabs):
             with acad_year_tab:
-                is_first_sem_of_ay = True
-
                 # Loop through each term in the AY, considering the list of modules taken
                 for sem_name, sem_courses in user_enrollments[acad_year].items():
-                    # Add divider to split the selection fields
-                    if not is_first_sem_of_ay:
-                        st.divider()
-
                     st.markdown(f"**<u>{sem_name}</u>**", unsafe_allow_html=True)
 
                     # Get list of module names and list of module ratings for this term
@@ -131,9 +121,7 @@ def display_user_enrollments(conn: st.connections.SQLConnection, username: str) 
                     # Add to list of rating dataframes
                     ratings_dfs.append(ratings_df)
                         
-                    is_first_sem_of_ay = False
-
-        st.divider()
+                    st.divider()
 
         # Concatenate all the rating dataframes
         combined_ratings_df = pd.concat(ratings_dfs, ignore_index=True, axis=0)
@@ -144,17 +132,20 @@ def display_user_enrollments(conn: st.connections.SQLConnection, username: str) 
 
         # Add button for user to submit ratings
         if st.button("Submit All Ratings"):
-            confirm_saving_of_ratings(conn=conn, username=username, ratings_list=ratings_list)
+            confirm_saving_of_ratings(conn=conn, user=user, ratings_list=ratings_list)
 
 
-# Initialise connection
-conn = st.connection("nus_moderator", type="sql")
+# Retrieve connection from session state
+conn = st.session_state["conn"]
 
 # Display header and introduction
 st.header("Your Profile")
 
+# Get user from session state
+user = st.session_state["user"]
+
 # Display user information
-username = display_personal_particulars()
+display_personal_particulars(user=user)
 
 # Display the modules that the user has taken
-display_user_enrollments(conn=conn, username=username)
+display_user_enrollments(conn=conn, user=user)

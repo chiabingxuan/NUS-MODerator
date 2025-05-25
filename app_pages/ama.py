@@ -65,7 +65,7 @@ if prompt:
 
         with st.spinner("Generating response..."):
             # Get response from chatbot and format it
-            user_major = st.session_state["user_details"]["major"]
+            user_major = st.session_state["user"].major
             generated_response = run_chatbot(query=prompt, major=user_major, chat_history=st.session_state["conversation_history"])
             formatted_response = format_moderator_response(generated_response=generated_response)
 

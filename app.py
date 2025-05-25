@@ -1,9 +1,10 @@
 import datetime
 import hashlib
 from moderator.config import AVAILABLE_MAJORS
-from moderator.helpers.utils import get_formatted_user_enrollments_from_db
 from moderator.sql.acad_years import GET_LIST_OF_AYS_QUERY
 from moderator.sql.users import GET_EXISTING_USER_QUERY, INSERT_NEW_USER_STATEMENT
+from moderator.utils.helpers import get_formatted_user_enrollments_from_db
+from moderator.utils.user import User, Admin
 import os
 from sqlalchemy import text
 import streamlit as st
@@ -80,18 +81,32 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                 # Get a formatted dictionary of the courses taken by the user
                 formatted_user_enrollments = get_formatted_user_enrollments_from_db(conn=conn, username=username_input)
 
-                # Update session state with user information
-                st.session_state["user_details"] = {
-                    "username": username_input,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "matriculation_ay": matriculation_ay,
-                    "major": major,
-                    "role": role,
-                    "reg_datetime": reg_datetime,
-                    "user_enrollments": formatted_user_enrollments
-                }
+                # Initialise user
+                if role == "user":
+                    # User is not an admin
+                    user = User(
+                        username=username_input,
+                        first_name=first_name,
+                        last_name=last_name,
+                        matriculation_ay=matriculation_ay,
+                        major=major,
+                        reg_datetime=reg_datetime,
+                        user_enrollments=formatted_user_enrollments
+                    )
+   
+                else:
+                    user = Admin(
+                        username=username_input,
+                        first_name=first_name,
+                        last_name=last_name,
+                        matriculation_ay=matriculation_ay,
+                        major=major,
+                        reg_datetime=reg_datetime,
+                        user_enrollments=formatted_user_enrollments
+                    )
 
+                # Update session state
+                st.session_state["user"] = user
                 st.success("Login successful!")
                 time.sleep(1)
                 st.rerun()
@@ -174,27 +189,28 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
             handle_registration(conn=conn, username_input=username_input, password_input=password_input, first_name_input=first_name_input, last_name_input=last_name_input, matriculation_ay_input=matriculation_ay_input, major_input=major_input)
 
 
-# Initialise connection
+# Initialise connection and save it in session state
 conn = st.connection("nus_moderator", type="sql")
+if "conn" not in st.session_state:
+    st.session_state["conn"] = conn
 
 # Get list of academic years considered, and save in session state
 if "list_of_ays" not in st.session_state:
     list_of_ays = get_list_of_ays(conn=conn)
     st.session_state["list_of_ays"] = list_of_ays
-
+    
 # List of pages of app
 pages = [
     st.Page(os.path.join("app_pages", "home.py"), title="Home"),
     st.Page(os.path.join("app_pages", "planner.py"), title="Course Planner"),
     st.Page(os.path.join("app_pages", "ama.py"), title="AMA"),
     st.Page(os.path.join("app_pages", "profile.py"), title="Profile"),
-    st.Page(os.path.join("app_pages", "admin.py"), title="Admin"),
     st.Page(os.path.join("app_pages", "about.py"), title="About")
 ]
 
 
-if "user_details" not in st.session_state:
-    # No user details saved in session state - user has not logged in
+if "user" not in st.session_state:
+    # No user saved in session state - user has not logged in
     # Display placeholder header of app
     st.header("NUS-MODerator")
 
@@ -206,6 +222,10 @@ if "user_details" not in st.session_state:
 
 else:
     # User has already logged in
+    if isinstance(st.session_state["user"], Admin):
+        # If user is admin, add the admin page
+        pages.append(st.Page(os.path.join("app_pages", "admin.py"), title="Admin"))
+
     # Display and run navigation sidebar
     page_nav = st.navigation(pages, position="sidebar")
     page_nav.run()
