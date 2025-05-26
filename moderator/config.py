@@ -50,6 +50,10 @@ EMBEDDINGS_MODEL_NAME = "all-MiniLM-L6-v2"
 # Configure saving of vector embeddings
 PINECONE_BATCH_SIZE = 500
 
+### UPDATE BUS STOPS AND ROUTES DATA ###
+BUS_STOPS_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/stops.json"
+BUS_ROUTES_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/routes.json"
+
 ### COURSE PLANNER ###
 # Set number of years spent in university
 NUM_OF_YEARS_TO_GRAD = 4

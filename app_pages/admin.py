@@ -1,8 +1,34 @@
 from moderator.config import ACAD_YEAR
 from moderator.utils.user import Admin
 import streamlit as st
+import streamlit.components.v1 as components
+import time
 
 
+def close_dialog():
+    components.html(
+        """\
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = parent.document.querySelector('div[data-baseweb="modal"]');
+            if (modal) {
+                // Apply a fade-out transition
+                modal.style.transition = 'opacity 0.5s ease';
+                modal.style.opacity = '0';
+
+                // Remove the modal after the fade-out effect finishes
+                setTimeout(function() {
+                    modal.remove();
+                }, 500);  // Time corresponds to the transition duration (0.5s)
+            }
+        });
+        </script>
+        """,
+        height=0,
+        scrolling=False,
+    )
+
+    
 @st.dialog("Are you sure you want to proceed?")
 def confirm_update(content_to_update: str) -> None:
     # Add button to confirm update
@@ -14,6 +40,7 @@ def confirm_update(content_to_update: str) -> None:
     if confirm_button:
         # In session state, specify what to update 
         st.session_state["content_to_update"] = content_to_update
+        close_dialog()
         st.rerun()
     
     if cancel_button:
@@ -28,27 +55,38 @@ def display_update_db_panel(conn: st.connections.SQLConnection, admin: Admin) ->
 
         # Display update buttons if they have not been clicked
         if st.session_state["content_to_update"] is None:
-            if st.button("Update Database"):
-                # Admin wants to update database - ask them to confirm their request
-                confirm_update("database")
+            if st.button("Update Academic Database"):
+                # Admin wants to update academic database - ask them to confirm their request
+                confirm_update("acad_db")
             
             if st.button("Update Vector Store"):
                 # Admin wants to update vector store - ask them to confirm their request
                 confirm_update("vector_store")
+            
+            if st.button("Update Bus Database"):
+                # Admin wants to update bus database - ask them to confirm their request
+                confirm_update("bus_db")
 
         else:
             # An update button has been clicked - proceed to update content requested
-            with st.spinner("Update in progress. This will take a while - please go and touch some grass first...", show_time=True):
-                if st.session_state["content_to_update"] == "database":
-                    # Update the PostgreSQL database
-                    admin.update_db(conn=conn, acad_year=ACAD_YEAR)
+            with st.spinner("Update in progress. This might take a while - please go and touch some grass first...", show_time=True):
+                if st.session_state["content_to_update"] == "acad_db":
+                    # Update the academic-related tables in the PostgreSQL database
+                    admin.update_acad_db(conn=conn, acad_year=ACAD_YEAR)
 
-                else:
+                elif st.session_state["content_to_update"] == "vector_store":
                     # Update Pinecone vector store
                     admin.update_vector_store(conn=conn, acad_year=ACAD_YEAR)
+
+                else:
+                    # Update the bus-related tables in the PostgreSQL database
+                    # admin.update_bus_db(conn=conn)
+                    time.sleep(5)
             
-            st.success("Update completed! Please refresh the page.")
+            st.success("Update completed!")
             st.session_state["content_to_update"] = None
+            time.sleep(1)
+            st.rerun()
 
 
 def display_admin_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:

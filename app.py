@@ -202,6 +202,7 @@ if "list_of_ays" not in st.session_state:
 # List of pages of app
 pages = [
     st.Page(os.path.join("app_pages", "home.py"), title="Home"),
+    st.Page(os.path.join("app_pages", "bus_services.py"), title="Bus Services"),
     st.Page(os.path.join("app_pages", "planner.py"), title="Course Planner"),
     st.Page(os.path.join("app_pages", "ama.py"), title="AMA"),
     st.Page(os.path.join("app_pages", "profile.py"), title="Profile"),

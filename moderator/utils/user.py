@@ -4,8 +4,11 @@ from langchain_core.vectorstores import VectorStore
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
-from moderator.config import DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE
+from moderator.config import DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE, BUS_STOPS_URL, BUS_ROUTES_URL
 from moderator.sql.acad_years import INSERT_NEW_ACAD_YEAR_STATEMENT
+from moderator.sql.bus_numbers import GET_BUS_NUMBERS_QUERY, INSERT_BUS_NUMBER_STATEMENT, DELETE_BUS_NUMBER_STATEMENT
+from moderator.sql.bus_routes import GET_BUS_ROUTES_QUERY, INSERT_BUS_ROUTE_STATEMENT, DELETE_BUS_ROUTE_STATEMENT
+from moderator.sql.bus_stops import GET_BUS_STOP_CODES_QUERY, INSERT_BUS_STOP_STATEMENT, DELETE_BUS_STOP_STATEMENT
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT
 from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT
@@ -85,8 +88,8 @@ class Admin(User):
         )
 
 
-    ### POSTGRESQL DATABASE UPDATE ###
-    # Admin can update the PostgreSQL database
+    ### ACADEMIC DATABASE UPDATE ###
+    # Admin can update the academic-related tables in PostgreSQL database
     def get_module_info_this_acad_year(self, acad_year: str) -> tuple[list[dict[str, int | str | list[int]]], dict[str, str]]:
         print(f"Getting module information for AY{acad_year}...")
 
@@ -357,7 +360,7 @@ class Admin(User):
 
     # This updates the departments, modules, reviews, acad_years and offers tables
     # Useful when NUSMods data for the new AY has just been released        
-    def update_db(self, conn: st.connections.SQLConnection, acad_year: str) -> None:
+    def update_acad_db(self, conn: st.connections.SQLConnection, acad_year: str) -> None:
         # Fetch latest information from NUSMods API
         # Get the modules offered, the modules not offered, and the departments available this academic year
         available_modules_this_ay, departments_to_faculties_this_ay = self.get_module_info_this_acad_year(acad_year=acad_year)
@@ -490,6 +493,144 @@ class Admin(User):
         print("Completed the vector store update!")
 
 
+    ### BUS DATABASE UPDATE ###
+    # Admin can update the bus-related tables in PostgreSQL database
+    def update_bus_stops_table(self, conn: st.connections.SQLConnection) -> None:
+        # Get list of existing bus stop codes in table
+        existing_bus_stop_codes = list(conn.query(GET_BUS_STOP_CODES_QUERY, ttl=0)["code_name"])
+
+        # Get bus stop data - a list of dictionaries
+        bus_stops = requests.get(url=BUS_STOPS_URL).json()
+
+        with conn.session as s:
+            # Loop through each bus stop requested
+            new_bus_stop_codes = set()
+            new_bus_stop_info = list()
+            for bus_stop in bus_stops:
+                # Get information for this bus stop
+                bus_stop_code, bus_stop_name, bus_stop_lat, bus_stop_long = bus_stop["name"], bus_stop["caption"], bus_stop["latitude"], bus_stop["longitude"]
+
+                # Add bus stop code to the new set
+                new_bus_stop_codes.add(bus_stop_code)
+
+                # Append bus stop info to the new list
+                new_bus_stop_info.append((bus_stop_code, bus_stop_name, bus_stop_lat, bus_stop_long))
+
+            # Loop through each existing bus stop
+            for existing_bus_stop_code in existing_bus_stop_codes:
+                if existing_bus_stop_code not in new_bus_stop_codes:
+                    # Bus stop code exists in table but does not exist in the new batch of bus stops
+                    # Delete this bus stop code from table
+                    s.execute(
+                        text(DELETE_BUS_STOP_STATEMENT),
+                        params={
+                            "code_name": existing_bus_stop_code
+                        }
+                    )
+
+            # Upsert new bus stops into table
+            for bus_stop_code, bus_stop_name, bus_stop_lat, bus_stop_long in new_bus_stop_info:
+                s.execute(
+                    text(INSERT_BUS_STOP_STATEMENT),
+                    params={
+                        "code_name": bus_stop_code,
+                        "display_name": bus_stop_name,
+                        "latitude": bus_stop_lat,
+                        "longitude": bus_stop_long
+                    }
+                )
+            
+            s.commit()
+
+            
+    def update_bus_nums_and_bus_routes_table(self, conn: st.connections.SQLConnection) -> None:
+        # Get list of existing bus numbers in bus_numbers table
+        existing_bus_nums = list(conn.query(GET_BUS_NUMBERS_QUERY, ttl=0)["bus_num"])
+
+        # Get list of existing (bus_num, bus_stop_code, seq_num) triples from bus_routes table
+        existing_bus_routes = conn.query(GET_BUS_ROUTES_QUERY, ttl=0).values.tolist()
+
+        # Get bus route data - a dictionary
+        # Keys: Bus numbers
+        # Values: List of bus stops (dictionaries) in sequential order of route
+        bus_route_data = requests.get(url=BUS_ROUTES_URL).json()
+        
+        with conn.session as s:
+            # Loop through each bus number requested
+            new_bus_nums, new_bus_routes = set(), set()
+            for bus_num, bus_num_route in bus_route_data.items():
+                # Add bus number to the new set
+                new_bus_nums.add(bus_num)
+
+                for bus_stop in bus_num_route:
+                    # Get route information for the bus stop
+                    # Seq num: Represents position of the bus stop in the route
+                    # If seq num is 32767, bus stop is the terminal bus stop
+                    bus_stop_seq_num, bus_stop_code = bus_stop["seq"], bus_stop["busstopcode"]
+
+                    # Add (bus_num, bus_stop_code, seq_num) triple to the new set
+                    new_bus_routes.add((bus_num, bus_stop_code, bus_stop_seq_num))
+
+            # Loop through each existing bus number
+            for existing_bus_num in existing_bus_nums:
+                if existing_bus_num not in new_bus_nums:
+                    # Bus number exists in bus_numbers table but does not exist in the new batch of bus numbers
+                    # Delete this bus number from bus_numbers table
+                    s.execute(
+                        text(DELETE_BUS_NUMBER_STATEMENT),
+                        params={
+                            "bus_num": existing_bus_num
+                        }
+                    )
+            
+            # Loop through each existing (bus_num, bus_stop_code, seq_num) triple
+            for existing_bus_num, existing_bus_stop_code, existing_bus_stop_seq_num in existing_bus_routes:
+                if (existing_bus_num, existing_bus_stop_code, existing_bus_stop_seq_num) not in new_bus_routes:
+                    # (bus_num, bus_stop_code, seq_num) triple exists in bus_routes table but does not exist in the new batch of (bus_num, bus_stop_code, seq_num) triples
+                    # Delete the corresponding bus route from bus_routes table
+                    s.execute(
+                        text(DELETE_BUS_ROUTE_STATEMENT),
+                        params={
+                            "bus_num": existing_bus_num,
+                            "bus_stop_code": existing_bus_stop_code,
+                            "seq_num": existing_bus_stop_seq_num
+                        }
+                    )
+
+            # Insert new bus numbers into bus_numbers table
+            for bus_num in new_bus_nums:
+                s.execute(
+                    text(INSERT_BUS_NUMBER_STATEMENT),
+                    params={
+                        "bus_num": bus_num
+                    }
+                )
+
+            # Insert new route information into bus_routes table, or update the row if it already exists
+            for bus_num, bus_stop_code, bus_stop_seq_num in new_bus_routes:
+                s.execute(
+                    text(INSERT_BUS_ROUTE_STATEMENT),
+                    params={
+                        "bus_num": bus_num,
+                        "bus_stop_code": bus_stop_code,
+                        "seq_num": bus_stop_seq_num
+                    }
+                )
+
+            s.commit()
+
+
+    # This updates the bus_stops, bus_numbers and bus_routes tables
+    # Useful when changes to the NUS bus system have been announced
+    def update_bus_db(self, conn: st.connections.SQLConnection) -> None:
+        # Update bus stops
+        self.update_bus_stops_table(conn=conn)
+
+        # Update bus numbers and bus routes
+        self.update_bus_nums_and_bus_routes_table(conn=conn)
+
+
+    ### GRANT ADMIN RIGHTS ###
     # Admin can grant admin rights to a selected user
     # If the action is successful, this returns True, False otherwise
     def make_user_admin(self, conn: st.connections.SQLConnection, username: str) -> bool:
@@ -513,3 +654,5 @@ class Admin(User):
             s.commit()
         
         return True
+    
+

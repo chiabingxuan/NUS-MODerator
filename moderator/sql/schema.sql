@@ -74,3 +74,40 @@ CREATE TABLE IF NOT EXISTS enrollments (
     FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE,
     CHECK (rating >= 0 AND rating <= 10)
 );
+
+CREATE TABLE IF NOT EXISTS bus_stops (
+    code_name VARCHAR(255) PRIMARY KEY,
+    display_name VARCHAR(255) NOT NULL,
+    latitude NUMERIC(20, 10) NOT NULL,
+    longitude NUMERIC(20, 10) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bus_numbers (
+    bus_num VARCHAR(15) PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS bus_routes (
+    bus_num VARCHAR(15),
+    bus_stop_code VARCHAR(255),
+    seq_num INT,
+    PRIMARY KEY (bus_num, bus_stop_code, seq_num),
+    FOREIGN KEY (bus_num) REFERENCES bus_numbers(bus_num) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (bus_stop_code) REFERENCES bus_stops(code_name) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE (bus_num, seq_num)
+);
+
+CREATE TABLE IF NOT EXISTS bus_trips (
+    username VARCHAR(255),
+    bus_num VARCHAR(15),
+    start_bus_stop VARCHAR(255),
+    end_bus_stop VARCHAR(255),
+    start_date TIMESTAMP,
+    end_date TIMESTAMP NOT NULL,
+    weather VARCHAR(255) NOT NULL,
+    PRIMARY KEY (username, bus_num, start_bus_stop, end_bus_stop, start_date),
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (bus_num) REFERENCES bus_numbers(bus_num) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (start_bus_stop) REFERENCES bus_stops(code_name) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (end_bus_stop) REFERENCES bus_stops(code_name) ON DELETE CASCADE ON UPDATE CASCADE,
+    CHECK (start_date < end_date)
+);
