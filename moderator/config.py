@@ -54,6 +54,9 @@ PINECONE_BATCH_SIZE = 500
 BUS_STOPS_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/stops.json"
 BUS_ROUTES_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/routes.json"
 
+### LIVE BUS TIMINGS ###
+NEXTBUS_API_BASE_URL = "https://nnextbus.nusmods.com"
+
 ### COURSE PLANNER ###
 # Set number of years spent in university
 NUM_OF_YEARS_TO_GRAD = 4

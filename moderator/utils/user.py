@@ -8,7 +8,7 @@ from moderator.config import DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER
 from moderator.sql.acad_years import INSERT_NEW_ACAD_YEAR_STATEMENT
 from moderator.sql.bus_numbers import GET_BUS_NUMBERS_QUERY, INSERT_BUS_NUMBER_STATEMENT, DELETE_BUS_NUMBER_STATEMENT
 from moderator.sql.bus_routes import GET_BUS_ROUTES_QUERY, INSERT_BUS_ROUTE_STATEMENT, DELETE_BUS_ROUTE_STATEMENT
-from moderator.sql.bus_stops import GET_BUS_STOP_CODES_QUERY, INSERT_BUS_STOP_STATEMENT, DELETE_BUS_STOP_STATEMENT
+from moderator.sql.bus_stops import GET_BUS_STOPS_QUERY, INSERT_BUS_STOP_STATEMENT, DELETE_BUS_STOP_STATEMENT
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT
 from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT
@@ -497,7 +497,7 @@ class Admin(User):
     # Admin can update the bus-related tables in PostgreSQL database
     def update_bus_stops_table(self, conn: st.connections.SQLConnection) -> None:
         # Get list of existing bus stop codes in table
-        existing_bus_stop_codes = list(conn.query(GET_BUS_STOP_CODES_QUERY, ttl=0)["code_name"])
+        existing_bus_stop_codes = list(conn.query(GET_BUS_STOPS_QUERY, ttl=0)["code_name"])
 
         # Get bus stop data - a list of dictionaries
         bus_stops = requests.get(url=BUS_STOPS_URL).json()

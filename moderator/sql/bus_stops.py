@@ -1,5 +1,5 @@
-GET_BUS_STOP_CODES_QUERY = """
-SELECT bs.code_name
+GET_BUS_STOPS_QUERY = """
+SELECT *
 FROM bus_stops bs;
 """
 

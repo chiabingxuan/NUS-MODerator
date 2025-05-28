@@ -69,15 +69,12 @@ CREATE TABLE IF NOT EXISTS enrollments (
     rating INT,
     PRIMARY KEY (username, module_code, acad_year, sem_num),
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (module_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (acad_year) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
-    FOREIGN KEY (sem_num) REFERENCES semesters(num) ON DELETE CASCADE ON UPDATE CASCADE,
-    CHECK (rating >= 0 AND rating <= 10)
+    FOREIGN KEY (module_code, acad_year, sem_num) REFERENCES offers(module_code, acad_year, sem_num) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS bus_stops (
     code_name VARCHAR(255) PRIMARY KEY,
-    display_name VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255) UNIQUE NOT NULL,
     latitude NUMERIC(20, 10) NOT NULL,
     longitude NUMERIC(20, 10) NOT NULL
 );

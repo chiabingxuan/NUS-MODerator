@@ -189,6 +189,18 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
             handle_registration(conn=conn, username_input=username_input, password_input=password_input, first_name_input=first_name_input, last_name_input=last_name_input, matriculation_ay_input=matriculation_ay_input, major_input=major_input)
 
 
+# Inject global CSS to hide anchor buttons on headings
+st.markdown(
+    """
+    <style>
+    [data-testid='stHeaderActionElements'] {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Initialise connection and save it in session state
 conn = st.connection("nus_moderator", type="sql")
 if "conn" not in st.session_state:

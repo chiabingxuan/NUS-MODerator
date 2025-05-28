@@ -1,3 +1,4 @@
+from moderator.bus_services.fetch_timings import fetch_timings_from_api
 import hashlib
 import os
 import requests
@@ -12,8 +13,5 @@ from sqlalchemy import text
 
 
 if __name__ == "__main__":
-    base_url = "https://nnextbus.nusmods.com"
-    name = "LT27"
-    url = f"{base_url}/ShuttleService"
-    response = requests.get(url=url, params={"busstopname": name})
-    print(response.json()["ShuttleServiceResult"]["shuttles"])
+    fetch_timings_from_api(bus_stop_code="UHALL")
+
