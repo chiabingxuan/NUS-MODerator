@@ -305,6 +305,13 @@ if "eta_dates_dialog" not in st.session_state:
 
 # Display header and introduction
 st.header("NUS Bus Services")
+st.markdown(
+    """
+    **Note for Live Updates**:
+    - For any selected bus stop, bus timings will be auto-updated every minute, but you can also update them manually by clicking the \"Update Timings\" button.
+    - If you have boarded a NUS bus (non-public bus) that has arrived, you can click on the corresponding \"Arr\" button to record your bus trip.
+    """
+)
 
 # Get user from session state
 user = st.session_state["user"]
