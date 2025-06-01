@@ -1,6 +1,6 @@
 import datetime
 import hashlib
-from moderator.config import AVAILABLE_MAJORS
+from moderator.config import AVAILABLE_MAJORS, HOURS_WRT_UTC
 from moderator.sql.acad_years import GET_LIST_OF_AYS_QUERY
 from moderator.sql.users import GET_EXISTING_USER_QUERY, INSERT_NEW_USER_STATEMENT
 from moderator.utils.helpers import get_formatted_user_enrollments_from_db
@@ -145,7 +145,7 @@ def handle_registration(conn: st.connections.SQLConnection, username_input: str,
                         "last_name": last_name_input,
                         "matriculation_ay": matriculation_ay_input,
                         "major": major_input,
-                        "reg_datetime": datetime.datetime.now()
+                        "reg_datetime": datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)
                     }
                 )
 

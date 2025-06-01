@@ -80,3 +80,6 @@ NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 3
 
 # Choose LLM for QA
 LLM_NAME = "deepseek-r1-distill-llama-70b"
+
+### OTHERS ###
+HOURS_WRT_UTC = 8

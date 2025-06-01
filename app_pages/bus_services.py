@@ -2,7 +2,8 @@ import datetime
 from moderator.bus_services.fetch_timings import get_bus_stop_names_to_codes, fetch_timings_from_api
 from moderator.bus_services.handle_routes import get_subsequent_bus_stops
 from moderator.bus_services.record_trips import get_eta_date, get_weather, record_trip
-from moderator.config import BUS_TIMINGS_AUTOREFRESH_INTERVAL
+from moderator.config import BUS_TIMINGS_AUTOREFRESH_INTERVAL, HOURS_WRT_UTC
+import pytz
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import time
@@ -76,7 +77,7 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
 
     # Get actual time when user alights at his destination
     end_time = st.time_input("When did you arrive at your destination?", step=60)
-    end_date = datetime.datetime.combine(datetime.date.today(), end_time)
+    end_date = datetime.datetime.combine((datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)).date(), end_time)
 
     confirm_button = st.button("Submit Trip")
     cancel_button = st.button("Cancel")
@@ -116,7 +117,7 @@ def display_waiting_time(conn: st.connections.SQLConnection, username: str, wait
             # Non-public bus has arrived
             # Mark the time now as the arrival time
             # Start date for the user's recorded trip: Defined as the point in time when the "Arr" button appears
-            start_date = datetime.datetime.now()
+            start_date = datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)
 
             # Display a centralised button for user to record his bus trip (if he / she boarded this arrived bus)
             left_col, middle_col, right_col = st.columns((1, 1, 1), vertical_alignment="center")
@@ -257,7 +258,7 @@ def display_live_bus_timings(conn: st.connections.SQLConnection, username: str) 
                     arr_button_pressed = True
 
         # Display last update time for this bus stop
-        last_updated_time = datetime.datetime.now()
+        last_updated_time = datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)
         st.markdown(f"**Last updated**: {last_updated_time.strftime("%d/%m/%Y %I:%M:%S %p")}")
 
         # Update session state with the last update time for this bus stop
