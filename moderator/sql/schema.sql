@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS bus_trips (
     end_bus_stop VARCHAR(255),
     start_date TIMESTAMP,
     end_date TIMESTAMP NOT NULL,
+    eta TIMESTAMP,
     weather VARCHAR(255) NOT NULL,
     PRIMARY KEY (username, bus_num, start_bus_stop, end_bus_stop, start_date),
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE,

@@ -237,6 +237,8 @@ else:
     # User has already logged in
     if isinstance(st.session_state["user"], Admin):
         # If user is admin, add the admin page
+        # TODO: After updating db (eg. bus db), admin page disappears when we toggle to a new page
+        # Need to fix this funny thing
         pages.append(st.Page(os.path.join("app_pages", "admin.py"), title="Admin"))
 
     # Display and run navigation sidebar

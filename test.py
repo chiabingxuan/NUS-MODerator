@@ -13,5 +13,6 @@ from sqlalchemy import text
 
 
 if __name__ == "__main__":
-    fetch_timings_from_api(bus_stop_code="UHALL")
+    print(fetch_timings_from_api(bus_stop_code="TCOMS"))
+    print(fetch_timings_from_api(bus_stop_code="COM3"))
 

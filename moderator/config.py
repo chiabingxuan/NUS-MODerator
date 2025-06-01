@@ -53,9 +53,15 @@ PINECONE_BATCH_SIZE = 500
 ### UPDATE BUS STOPS AND ROUTES DATA ###
 BUS_STOPS_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/stops.json"
 BUS_ROUTES_URL = "https://raw.githubusercontent.com/hewliyang/nus-nextbus-web/refs/heads/main/src/lib/data/routes.json"
+TERMINAL_BUS_STOP_SEQ_NUM = 32767
 
 ### LIVE BUS TIMINGS ###
 NEXTBUS_API_BASE_URL = "https://nnextbus.nusmods.com"
+BUS_TIMINGS_AUTOREFRESH_INTERVAL = 60000        # In milliseconds
+
+### TWO HOUR WEATHER FORECAST ###
+WEATHER_API_URL = "https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast"
+NUS_REGION = "Queenstown"
 
 ### COURSE PLANNER ###
 # Set number of years spent in university

@@ -31,7 +31,7 @@ def fetch_timings_from_api(bus_stop_code: str) -> dict[str, dict[str, dict[str, 
     # "arrivalTime_veh_plate": License plate number of next bus (not available for public buses)
     # "nextArrivalTime": Time (in min) before second bus
     # "nextArrivalTime_veh_plate": License plate number of second bus (not available for public buses)
-    # "_etas": List of buses. Each bus: dictionary with keys "plate", "eta"
+    # "_etas": List of buses. Each bus: dictionary with keys "plate", "eta_s"
     json_response = response.json()
     bus_services_at_bus_stop = json_response["ShuttleServiceResult"]["shuttles"]
 
@@ -45,7 +45,6 @@ def fetch_timings_from_api(bus_stop_code: str) -> dict[str, dict[str, dict[str, 
     for bus_service_data in bus_services_at_bus_stop:
         # Get bus number and update dictionary
         bus_num = bus_service_data["name"]
-        bus_num = bus_num.removeprefix("PUB:")      # Remove "PUB:" tag for public bus services
         bus_stop_timings[bus_num] = dict()
         
         # Get details of next bus and update dictionary
@@ -66,8 +65,11 @@ def fetch_timings_from_api(bus_stop_code: str) -> dict[str, dict[str, dict[str, 
         forecastable_buses = bus_service_data.get("_etas", list())  # For public buses, no "_etas" key. Just return empty list
         bus_stop_timings[bus_num]["bus_timings"] = dict()
         for forecastable_bus_data in forecastable_buses:
-            # Get details of each of these buses and update dictionary
-            forecastable_bus_plate_num, forecastable_bus_waiting_time = forecastable_bus_data["plate"], forecastable_bus_data["eta"]
-            bus_stop_timings[bus_num]["bus_timings"][forecastable_bus_plate_num] = forecastable_bus_waiting_time
+            # Get details of each of these buses
+            forecastable_bus_plate_num, forecastable_bus_waiting_time = forecastable_bus_data["plate"], forecastable_bus_data["eta_s"]
+
+            # Update dictionary such that it always contains the shortest ETA for each bus plate number
+            if forecastable_bus_plate_num not in bus_stop_timings[bus_num]["bus_timings"] or forecastable_bus_waiting_time < bus_stop_timings[bus_num]["bus_timings"][forecastable_bus_plate_num]:
+                bus_stop_timings[bus_num]["bus_timings"][forecastable_bus_plate_num] = forecastable_bus_waiting_time
         
     return bus_stop_timings
