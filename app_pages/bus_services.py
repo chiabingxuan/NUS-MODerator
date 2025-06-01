@@ -76,7 +76,7 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
     selected_end_bus_stop_code = subsequent_bus_stop_names_to_codes[selected_end_bus_stop_name]
 
     # Get actual time when user alights at his destination
-    end_time = st.time_input("When did you arrive at your destination?", step=60)
+    end_time = st.time_input("When did you arrive at your destination?", value=datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC), step=60)
     end_date = datetime.datetime.combine((datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)).date(), end_time)
 
     confirm_button = st.button("Submit Trip")
