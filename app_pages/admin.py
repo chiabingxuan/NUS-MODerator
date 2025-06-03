@@ -1,4 +1,5 @@
 from moderator.config import ACAD_YEAR
+from moderator.utils.helpers import get_departments_list
 from moderator.utils.user import Admin
 import streamlit as st
 import streamlit.components.v1 as components
@@ -89,6 +90,32 @@ def display_update_db_panel(conn: st.connections.SQLConnection, admin: Admin) ->
             st.rerun()
 
 
+def display_majors_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:
+    with st.form("majors_panel"):
+        st.markdown("#### Add Majors")
+        st.markdown("Specify the details of the major to be added:")
+
+        # Input major name
+        major_name = st.text_input("Major")
+
+        # Input department that the major is associated with
+        department_list = get_departments_list(conn=conn, acad_year=ACAD_YEAR)  # Consider only the departments available this AY
+        department_name = st.selectbox("Department of Major", options=department_list)
+
+        if st.form_submit_button("Submit"):
+            if not major_name:
+                st.error("Please ensure that the major name is filled up.")
+            
+            # Try to add the major, and check whether or not it is successful
+            elif admin.add_new_major(conn=conn, major=major_name, department=department_name):
+                # Action is successful
+                st.success("Major has been added!")
+            
+            else:
+                # Action is not successful - major already exists in database
+                st.error("That major already exists.")
+
+
 def display_admin_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:
     with st.form("admin_panel"):
         st.markdown("#### Grant Admin Rights")
@@ -125,6 +152,9 @@ st.header("Admin")
 
 # Display panel to update databases (ie. for the new AY)
 display_update_db_panel(conn=conn, admin=user)
+
+# Display panel to add majors
+display_majors_panel(conn=conn, admin=user)
 
 # Display panel to manage admins
 display_admin_panel(conn=conn, admin=user)

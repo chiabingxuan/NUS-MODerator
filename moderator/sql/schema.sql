@@ -3,6 +3,12 @@ CREATE TABLE IF NOT EXISTS departments (
     faculty VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS majors (
+    major VARCHAR(255) PRIMARY KEY,
+    department VARCHAR(255) NOT NULL,
+    FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE
+)
+
 CREATE TABLE IF NOT EXISTS modules (
     code VARCHAR(255) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -58,6 +64,7 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(255) NOT NULL,
     reg_datetime TIMESTAMP NOT NULL,
     FOREIGN KEY (matriculation_ay) REFERENCES acad_years(acad_year) ON UPDATE CASCADE,
+    FOREIGN KEY (major) REFERENCES majors(major) ON UPDATE CASCADE,
     CHECK (role IN ('user', 'admin'))
 );
 

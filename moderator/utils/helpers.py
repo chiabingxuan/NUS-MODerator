@@ -1,5 +1,8 @@
-from moderator.sql.departments import COUNT_SPECIFIC_AY_DEPARTMENTS_QUERY
+import datetime
+from moderator.config import HOURS_WRT_UTC
+from moderator.sql.departments import GET_SPECIFIC_AY_DEPARTMENTS_QUERY
 from moderator.sql.enrollments import GET_ENROLLMENTS_OF_USER_QUERY
+from moderator.sql.majors import GET_MAJORS_QUERY
 from moderator.sql.modules import COUNT_SPECIFIC_AY_MODULES_QUERY
 from moderator.sql.reviews import COUNT_SPECIFIC_AY_REVIEWS_QUERY
 from moderator.sql.semesters import GET_SEMESTERS_QUERY
@@ -12,7 +15,7 @@ import streamlit as st
 ### GETTING STATISTICS ###
 def get_general_statistics(conn: st.connections.SQLConnection, acad_year: str) -> tuple[int, int, int, int]:
     # Get general statistics to display in home page
-    num_depts = conn.query(COUNT_SPECIFIC_AY_DEPARTMENTS_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_depts"]
+    num_depts = len(conn.query(GET_SPECIFIC_AY_DEPARTMENTS_QUERY, params={"acad_year": acad_year}, ttl=3600)["department"])
     num_modules = conn.query(COUNT_SPECIFIC_AY_MODULES_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_modules"]
     num_reviews = conn.query(COUNT_SPECIFIC_AY_REVIEWS_QUERY, params={"acad_year": acad_year}, ttl=3600).iloc[0]["num_reviews"]
     num_users = conn.query(COUNT_CURRENT_USERS_QUERY, params={"acad_year": acad_year}, ttl=0).iloc[0]["num_users"]
@@ -85,3 +88,28 @@ def get_formatted_user_enrollments_from_db(conn: st.connections.SQLConnection, u
     formatted_user_enrollments = format_user_enrollments_from_db(user_enrollments=user_enrollments)
 
     return formatted_user_enrollments
+
+
+### GET LISTS FROM DATABASE ###
+def get_major_list(conn: st.connections.SQLConnection) -> list[str]:
+    # Get ordered list of existing majors
+    return list(conn.query(GET_MAJORS_QUERY, ttl=0)["major"])
+
+
+def get_departments_list(conn: st.connections.SQLConnection, acad_year: str) -> list[str]:
+    # Get ordered list of departments available, for the specified AY
+    return list(
+        conn.query(
+            GET_SPECIFIC_AY_DEPARTMENTS_QUERY,
+            params={
+                "acad_year": acad_year
+            },
+            ttl=3600
+        )["department"]
+    )
+
+
+### HANDLE TIMEZONES ###
+def adjust_to_timezone(time: datetime.datetime, hours_shift: int = HOURS_WRT_UTC) -> datetime.datetime:
+    # Offset to the timezone required
+    return time + datetime.timedelta(hours=hours_shift)

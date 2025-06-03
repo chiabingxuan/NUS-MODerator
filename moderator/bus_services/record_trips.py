@@ -1,8 +1,9 @@
 import datetime
 from moderator.bus_services.fetch_timings import fetch_timings_from_api
-from moderator.config import TERMINAL_BUS_STOP_SEQ_NUM, WEATHER_API_URL, NUS_REGION, HOURS_WRT_UTC
+from moderator.config import TERMINAL_BUS_STOP_SEQ_NUM, WEATHER_API_URL, NUS_REGION
 from moderator.sql.bus_routes import GET_TERMINAL_BUS_STOP_QUERY
 from moderator.sql.bus_trips import INSERT_BUS_TRIP_STATEMENT
+from moderator.utils.helpers import adjust_to_timezone
 import requests
 import streamlit as st
 from sqlalchemy import text
@@ -35,8 +36,9 @@ def get_eta_date(conn: st.connections.SQLConnection, bus_num: str, end_bus_stop:
 
         else:
             # Get ETA at destination, in seconds. Use it to get ETA in datetime format
-            eta_time = end_bus_stop_bus_timings[bus_plate_num] 
-            eta_date = datetime.datetime.now() + datetime.timedelta(seconds=eta_time) + datetime.timedelta(hours=HOURS_WRT_UTC)
+            eta_time = end_bus_stop_bus_timings[bus_plate_num]
+            eta_date_without_timezone_shift = datetime.datetime.now() + datetime.timedelta(seconds=eta_time)
+            eta_date = adjust_to_timezone(time=eta_date_without_timezone_shift)
 
     return eta_date
 

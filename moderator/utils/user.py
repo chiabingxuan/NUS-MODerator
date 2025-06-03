@@ -10,6 +10,7 @@ from moderator.sql.bus_numbers import GET_BUS_NUMBERS_QUERY, INSERT_BUS_NUMBER_S
 from moderator.sql.bus_routes import GET_BUS_ROUTES_QUERY, INSERT_BUS_ROUTE_STATEMENT, DELETE_BUS_ROUTE_STATEMENT
 from moderator.sql.bus_stops import GET_BUS_STOPS_QUERY, INSERT_BUS_STOP_STATEMENT, DELETE_BUS_STOP_STATEMENT
 from moderator.sql.departments import INSERT_NEW_DEPARTMENT_STATEMENT, DELETE_OUTDATED_DEPARTMENTS_STATEMENT
+from moderator.sql.majors import GET_EXISTING_MAJOR_QUERY, INSERT_NEW_MAJOR_QUERY
 from moderator.sql.modules import GET_MODULE_CODES_QUERY, INSERT_NEW_MODULE_STATEMENT
 from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT
 from moderator.sql.reviews import INSERT_NEW_REVIEW_STATEMENT
@@ -629,6 +630,33 @@ class Admin(User):
         # Update bus numbers and bus routes
         self.update_bus_nums_and_bus_routes_table(conn=conn)
 
+
+    ### ADD MAJORS ###
+    # Admin can add a new major into the database
+    # If the action is successful, this returns True, False otherwise
+    def add_new_major(self, conn: st.connections.SQLConnection, major: str, department: str) -> bool:
+        # Query the existing major information from database, if any
+        existing_major_info_df = conn.query(GET_EXISTING_MAJOR_QUERY, params={"major": major}, ttl=0)
+
+        if len(existing_major_info_df) > 0:
+            # Major already exists in database - return a failed response
+            return False
+
+        # Major does not exist yet
+        # Add this major
+        with conn.session as s:
+            s.execute(
+                text(INSERT_NEW_MAJOR_QUERY),
+                params={
+                    "major": major,
+                    "department": department
+                }
+            )
+
+            s.commit()
+
+        return True
+    
 
     ### GRANT ADMIN RIGHTS ###
     # Admin can grant admin rights to a selected user

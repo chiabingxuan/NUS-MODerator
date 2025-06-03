@@ -1,16 +1,3 @@
-### REGISTRATION ###
-# Set list of majors
-AVAILABLE_MAJORS = [
-    "Accountancy",
-    "Business Analytics",
-    "Computer Science",
-    "Data Science and Analytics",
-    "Law",
-    "Life Sciences",
-    "Psychology",
-    "Quantitative Finance"
-]
-
 ### UPDATING DATABASE ###
 # Set the current (most recent) academic year
 ACAD_YEAR = "2024-2025"
@@ -82,4 +69,4 @@ NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 3
 LLM_NAME = "deepseek-r1-distill-llama-70b"
 
 ### OTHERS ###
-HOURS_WRT_UTC = 8
+HOURS_WRT_UTC = 8       # UTC to SGT

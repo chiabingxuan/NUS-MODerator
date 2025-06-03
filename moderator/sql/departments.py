@@ -14,8 +14,8 @@ WHERE NOT EXISTS (
 );
 """
 
-COUNT_SPECIFIC_AY_DEPARTMENTS_QUERY = """
-SELECT COUNT(d.department) AS num_depts
+GET_SPECIFIC_AY_DEPARTMENTS_QUERY = """
+SELECT d.department
 FROM departments d
 WHERE EXISTS (
     SELECT *
@@ -23,5 +23,6 @@ WHERE EXISTS (
     WHERE d.department = m.department
     AND m.code = o.module_code
     AND o.acad_year = :acad_year
-);
+)
+ORDER BY d.department ASC;
 """

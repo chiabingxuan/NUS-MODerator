@@ -1,9 +1,8 @@
 import datetime
 import hashlib
-from moderator.config import AVAILABLE_MAJORS, HOURS_WRT_UTC
 from moderator.sql.acad_years import GET_LIST_OF_AYS_QUERY
 from moderator.sql.users import GET_EXISTING_USER_QUERY, INSERT_NEW_USER_STATEMENT
-from moderator.utils.helpers import get_formatted_user_enrollments_from_db
+from moderator.utils.helpers import get_formatted_user_enrollments_from_db, get_major_list, adjust_to_timezone
 from moderator.utils.user import User, Admin
 import os
 from sqlalchemy import text
@@ -145,7 +144,7 @@ def handle_registration(conn: st.connections.SQLConnection, username_input: str,
                         "last_name": last_name_input,
                         "matriculation_ay": matriculation_ay_input,
                         "major": major_input,
-                        "reg_datetime": datetime.datetime.now() + datetime.timedelta(hours=HOURS_WRT_UTC)
+                        "reg_datetime": adjust_to_timezone(time=datetime.datetime.now())
                     }
                 )
 
@@ -175,12 +174,15 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
     # Display registration form if user toggles to it
     with register_tab:
         with st.form("register_form"):
+            # Get major list
+            major_list = get_major_list(conn=conn)
+
             # Display fields for registration
             username_input = st.text_input("Username")
             first_name_input = st.text_input("First Name")
             last_name_input = st.text_input("Last Name")
             matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"], index=None)
-            major_input = st.selectbox("Major", options=AVAILABLE_MAJORS, index=None)
+            major_input = st.selectbox("Major", options=major_list, index=None)
             password_input = st.text_input("Password", type="password")
             register_button = st.form_submit_button("Register")
 
