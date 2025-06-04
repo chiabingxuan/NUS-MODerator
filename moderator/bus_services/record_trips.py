@@ -9,7 +9,7 @@ import streamlit as st
 from sqlalchemy import text
 
 
-def get_eta_date(conn: st.connections.SQLConnection, bus_num: str, end_bus_stop: str, bus_plate_num: str) -> datetime.datetime:
+async def get_eta_date(conn: st.connections.SQLConnection, bus_num: str, end_bus_stop: str, bus_plate_num: str) -> datetime.datetime:
     # Check if end bus stop is terminal
     terminal_bus_stop_code = conn.query(
         GET_TERMINAL_BUS_STOP_QUERY,
@@ -27,7 +27,8 @@ def get_eta_date(conn: st.connections.SQLConnection, bus_num: str, end_bus_stop:
     else:
         # End bus stop is not terminal. We can get ETA at this bus stop by getting the updated bus timings
         # for destination bus stop and looking for the license plate number of the bus that the user has boarded
-        end_bus_stop_bus_timings = fetch_timings_from_api(bus_stop_code=end_bus_stop)[bus_num]["bus_timings"]
+        end_bus_stop_bus_timings_fetched = await fetch_timings_from_api(bus_stop_code=end_bus_stop)
+        end_bus_stop_bus_timings = end_bus_stop_bus_timings_fetched[bus_num]["bus_timings"]
         if bus_plate_num not in end_bus_stop_bus_timings:
             # Cannot find the bus the user has boarded
             # Could be because bus has already left the destination bus stop

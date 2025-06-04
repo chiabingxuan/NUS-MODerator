@@ -69,4 +69,4 @@ NUM_DOCUMENTS_RETRIEVED_SPECIFIC = 3
 LLM_NAME = "deepseek-r1-distill-llama-70b"
 
 ### OTHERS ###
-HOURS_WRT_UTC = 8       # UTC to SGT
+HOURS_WRT_UTC = 0       # UTC to SGT
