@@ -10,7 +10,6 @@ st.markdown("Many thanks to the people at NUSMods for providing me with assistan
 st.markdown("Shoutout to my senpai, [Roydon](https://www.linkedin.com/in/roydon-tay/), for helping me out with LangChain retrieval augmented generation.")
 st.markdown("Also a big thank you to my cousin, [Xi En](https://www.linkedin.com/in/xi-en-tan-5b065b1b2/), for teaching me how to host databases on the cloud for free. You might have just become my favourite cousin.")
 st.markdown("Information on bus stops and bus routes is provided by [Li Yang](https://www.linkedin.com/in/hewliyang/), who has given me permission to make use of his \"NUS NextBus Web Client\" [GitHub repository]((https://github.com/hewliyang/nus-nextbus-web)).")
-st.markdown("Sadly, it turns out that the name \"NUSModerator\" [has actually been used before](https://github.com/nusmodifications/nusmods/tree/master/packages/nusmoderator). I guess I'm still hopeless when it comes to naming stuff - if I ever have children, may God bless them.")
 
 # Display information section
 st.markdown("#### About Me")
