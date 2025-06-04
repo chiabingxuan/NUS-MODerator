@@ -235,6 +235,9 @@ if "user" not in st.session_state:
     # Display the selection of forms
     display_and_handle_auth_tabs(conn=conn)
 
+    # Display terms of service
+    st.markdown("[NUS Policy for IT Resources](https://nus.edu.sg/registrar/docs/info/registration-guides/aup-form.pdf)")
+
 else:
     # User has already logged in
     if isinstance(st.session_state["user"], Admin):
