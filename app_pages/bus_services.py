@@ -175,6 +175,7 @@ async def display_waiting_time(conn: st.connections.SQLConnection, username: str
                     )
 
                     # Store ETAs in session state
+                    st.session_state["eta_dates_dialog"] = dict()       # First reinitialise the dictionary
                     for ordered_subsequent_bus_stop_code, eta_date in zip(ordered_subsequent_bus_stop_codes, eta_dates):
                         st.session_state["eta_dates_dialog"][ordered_subsequent_bus_stop_code] = eta_date
     
