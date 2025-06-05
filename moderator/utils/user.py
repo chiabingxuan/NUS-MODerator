@@ -418,7 +418,7 @@ class Admin(User):
             # Combine description of module + combined module reviews (if any) to make a document
             module_text_with_description = module_description
             if module_combined_text is not None:
-                module_text_with_description = f"{module_text_with_description}\n{module_combined_text}"
+                module_text_with_description = f"{module_text_with_description}\n\n{module_combined_text}"
 
             module_document = Document(
                 page_content=module_text_with_description,
