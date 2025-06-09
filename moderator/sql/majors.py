@@ -12,5 +12,5 @@ WHERE m.major = :major;
 
 INSERT_NEW_MAJOR_QUERY = """
 INSERT INTO majors
-VALUES (:major, :department);
+VALUES (:major, :department, :num_years);
 """

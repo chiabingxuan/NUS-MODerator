@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS departments (
 CREATE TABLE IF NOT EXISTS majors (
     major VARCHAR(255) PRIMARY KEY,
     department VARCHAR(255) NOT NULL,
+    num_years INT NOT NULL,
     FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE
 )
 

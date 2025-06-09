@@ -634,7 +634,7 @@ class Admin(User):
     ### ADD MAJORS ###
     # Admin can add a new major into the database
     # If the action is successful, this returns True, False otherwise
-    def add_new_major(self, conn: st.connections.SQLConnection, major: str, department: str) -> bool:
+    def add_new_major(self, conn: st.connections.SQLConnection, major: str, department: str, num_years_for_major: int) -> bool:
         # Query the existing major information from database, if any
         existing_major_info_df = conn.query(GET_EXISTING_MAJOR_QUERY, params={"major": major}, ttl=0)
 
@@ -649,7 +649,8 @@ class Admin(User):
                 text(INSERT_NEW_MAJOR_QUERY),
                 params={
                     "major": major,
-                    "department": department
+                    "department": department,
+                    "num_years": num_years_for_major
                 }
             )
 

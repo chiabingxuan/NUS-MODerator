@@ -92,6 +92,8 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                         reg_datetime=reg_datetime,
                         user_enrollments=formatted_user_enrollments
                     )
+
+                    user_role = "user"
    
                 else:
                     user = Admin(
@@ -104,14 +106,17 @@ def handle_login(conn: st.connections.SQLConnection, username_input: str, passwo
                         user_enrollments=formatted_user_enrollments
                     )
 
+                    user_role = "admin"
+
                 # Update session state
                 st.session_state["user"] = user
+                st.session_state["user_role"] = user_role
                 st.success("Login successful!")
                 time.sleep(1)
                 st.rerun()
 
 
-def handle_registration(conn: st.connections.SQLConnection, username_input: str, password_input: str, first_name_input: str, last_name_input: str, matriculation_ay_input: str, major_input: str) -> None:
+def handle_registration(conn: st.connections.SQLConnection, username_input: str | None, password_input: str | None, first_name_input: str | None, last_name_input: str | None, matriculation_ay_input: str | None, major_input: str | None) -> None:
     if not (username_input and password_input and first_name_input and last_name_input and matriculation_ay_input and major_input):
         # Not all fields are filled up
         st.error("Please ensure that all fields are filled up.")
@@ -240,10 +245,8 @@ if "user" not in st.session_state:
 
 else:
     # User has already logged in
-    if isinstance(st.session_state["user"], Admin):
+    if st.session_state["user_role"] == "admin":
         # If user is admin, add the admin page
-        # TODO: After updating db (eg. bus db), admin page disappears when we toggle to a new page
-        # Need to fix this funny thing
         pages.append(st.Page(os.path.join("app_pages", "admin.py"), title="Admin"))
 
     # Display and run navigation sidebar

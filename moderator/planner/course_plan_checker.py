@@ -1,5 +1,6 @@
-from moderator.config import NUM_OF_YEARS_TO_GRAD, MAX_MCS_FIRST_SEM, MIN_MCS_TO_GRAD
+from moderator.config import AVERAGE_MCS_PER_AY, MAX_MCS_FIRST_SEM
 from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
+from moderator.sql.majors import GET_EXISTING_MAJOR_QUERY
 from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
 from moderator.utils.helpers import get_semester_info
 from moderator.utils.user import User
@@ -44,10 +45,18 @@ class CoursePlanChecker(object):
         # Assign connection as an attribute
         self._conn = conn
 
-        # Assign relevant parameters for course checking
-        self._num_years_to_grad = NUM_OF_YEARS_TO_GRAD   # Number of years required to graduate
+        # Get number of years that user is required to study for, based on his / her major
+        self._num_years_to_grad = self._conn.query(
+            GET_EXISTING_MAJOR_QUERY,
+            params={
+                "major": user.major
+            },
+            ttl=3600
+        ).iloc[0]["num_years"]
+
+        # Assign other relevant parameters for course checking
         self._max_mcs_first_sem = MAX_MCS_FIRST_SEM      # Max number of MCs that can be taken in user's first semester
-        self._min_mcs_to_grad = MIN_MCS_TO_GRAD          # Min number of MCs needed to graduate
+        self._min_mcs_to_grad = self._num_years_to_grad * AVERAGE_MCS_PER_AY      # Min number of MCs needed to graduate. On average, 40 MCs are taken per year
 
         # Get the AYs during which the user will be studying (capped off by current AY)
         first_ay = user.matriculation_ay

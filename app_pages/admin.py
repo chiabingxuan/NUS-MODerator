@@ -102,12 +102,20 @@ def display_majors_panel(conn: st.connections.SQLConnection, admin: Admin) -> No
         department_list = get_departments_list(conn=conn, acad_year=ACAD_YEAR)  # Consider only the departments available this AY
         department_name = st.selectbox("Department of Major", options=department_list)
 
+        # Input number of years for this major programme
+        num_years_for_major = st.number_input(
+            "Length of Programme (in years)",
+            min_value=1,
+            max_value=6,
+            value=4
+        )
+
         if st.form_submit_button("Submit"):
-            if not major_name:
-                st.error("Please ensure that the major name is filled up.")
+            if not major_name or not department_name or not num_years_for_major:
+                st.error("Please ensure that all fields are filled up.")
             
             # Try to add the major, and check whether or not it is successful
-            elif admin.add_new_major(conn=conn, major=major_name, department=department_name):
+            elif admin.add_new_major(conn=conn, major=major_name, department=department_name, num_years_for_major=num_years_for_major):
                 # Action is successful
                 st.success("Major has been added!")
             

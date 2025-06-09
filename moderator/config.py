@@ -51,14 +51,11 @@ WEATHER_API_URL = "https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast
 NUS_REGION = "Queenstown"
 
 ### COURSE PLANNER ###
-# Set number of years spent in university
-NUM_OF_YEARS_TO_GRAD = 4
-
 # Set maximum number of MCs for first semester
 MAX_MCS_FIRST_SEM = 23.0
 
-# Set minimum number of MCs to graduate
-MIN_MCS_TO_GRAD = 160.0
+# Set average number of MCs that a student takes per AY. Typically, it should be 40 MCs
+AVERAGE_MCS_PER_AY = 40.0
 
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved

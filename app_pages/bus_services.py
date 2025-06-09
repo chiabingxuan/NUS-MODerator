@@ -124,20 +124,29 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
         st.rerun()
 
 
-# Will return a boolean that indicates whether or not this waiting time corresponds to an "Arr" button that has been pressed
+# Will return a boolean that indicates whether or not this waiting time corresponds to a "record trip" button that has been pressed
 async def display_waiting_time(conn: st.connections.SQLConnection, username: str, waiting_time: str, bus_stop_code: str, bus_num: str, bus_type: str, bus_plate_num: str | None) -> bool:
-    if waiting_time == "Arr":
-        if not bus_num.startswith("PUB:"):
-            # Non-public bus has arrived
-            # Mark the time now as the arrival time
-            # Start date for the user's recorded trip: Defined as the point in time when the "Arr" button appears
-            start_date = adjust_to_timezone(time=datetime.datetime.now())
+    # Add clickable button to record bus trip, for the case of "Arr" or "1 min"
+    if waiting_time == "Arr" or waiting_time == "1":
+        # Add "min" suffix if waiting time is 1 min
+        if waiting_time == "1":
+            waiting_time = f"{waiting_time} min"
+            offset_for_start_date = 1       # Need to add 1 minute when marking the bus arrival time (start date for trip)
+        
+        else:
+            offset_for_start_date = 0
 
-            # Display a centralised button for user to record his bus trip (if he / she boarded this arrived bus)
-            left_col, middle_col, right_col = st.columns((1, 1, 1), vertical_alignment="center")
+        if not bus_num.startswith("PUB:"):
+            # Non-public bus
+            # Mark the arrival time
+            # Start date for the user's recorded trip: Taken wrt the point in time when the button appears
+            start_date = adjust_to_timezone(time=datetime.datetime.now() + datetime.timedelta(minutes=offset_for_start_date))
+
+            # Display a centralised button for user to record his bus trip (if he / she boarded this bus)
+            left_col, middle_col, right_col = st.columns((1, 2, 1), vertical_alignment="center")
             with middle_col:
                 record_trip_button = st.button(
-                    label=f"**{waiting_time}**",     # Bold the "Arr" text using Markdown (st.button only accepts Markdown formatting)
+                    label=f"**{waiting_time}**",     # Bold the text using Markdown (st.button only accepts Markdown formatting)
                     key=f"arr_{bus_stop_code}_{bus_num}_{bus_type}_{bus_plate_num}",
                     help="Did you board this bus? Click to record your bus trip!",
                     use_container_width=True
@@ -195,25 +204,25 @@ async def display_waiting_time(conn: st.connections.SQLConnection, username: str
                     subsequent_bus_stop_names_to_codes=subsequent_bus_stop_names_to_codes
                 )
 
-                # This "Arr" button has been pressed - return True
+                # This "record trip" button has been pressed - return True
                 return True
             
-            # This "Arr" button has not been pressed - return False
+            # This "record trip" button has not been pressed - return False
             return False
         
         # Don't need to record public bus trips
-        # Bold the "Arr" text using HTML
+        # Bold the waiting time text using HTML
         waiting_time = f"<b>{waiting_time}</b>"
     
     elif waiting_time != "-":
-        # Waiting time corresponds to an actual numerical value - append "min" as a suffix
+        # Waiting time corresponds to an actual numerical value (except 1 min) - append "min" as a suffix
         waiting_time = f"{waiting_time} min"
     
     # Add HTML tags to the formatted waiting time, so as to centralise the text
     formatted_waiting_time_with_centralising_html = add_html_tags_with_center_style(formatted_text=waiting_time)
     st.markdown(formatted_waiting_time_with_centralising_html, unsafe_allow_html=True)
 
-    # Waiting time displayed is not "Arr" - no "Arr" button displayed, return False
+    # No "record trip" button displayed, return False
     return False
 
 
@@ -253,7 +262,7 @@ async def display_live_bus_timings(conn: st.connections.SQLConnection, username:
         next_bus_header.markdown(centralise_column_header(text="Next Bus"), unsafe_allow_html=True)
         second_bus_header.markdown(centralise_column_header(text="Second Bus"), unsafe_allow_html=True)
 
-        arr_button_pressed = False      # Boolean flag to check if an "Arr" button has been pressed in this rerun
+        record_trip_button_pressed = False      # Boolean flag to check if a "record trip" button has been pressed in this rerun
         for bus_num in bus_nums:
             # Get waiting times for this bus number
             next_bus_waiting_time, second_bus_waiting_time = selected_bus_stop_timings[bus_num]["next_bus"]["waiting_time"], selected_bus_stop_timings[bus_num]["second_bus"]["waiting_time"]
@@ -272,8 +281,8 @@ async def display_live_bus_timings(conn: st.connections.SQLConnection, username:
 
             with next_bus_col:
                 # Display next bus waiting time
-                # Also check if this waiting time corresponds to an "Arr" button that has been pressed
-                next_bus_arr_button_pressed = await display_waiting_time(
+                # Also check if this waiting time corresponds to a "record trip" button that has been pressed
+                next_bus_record_trip_button_pressed = await display_waiting_time(
                     conn=conn,
                     username=username,
                     waiting_time=next_bus_waiting_time,
@@ -283,12 +292,12 @@ async def display_live_bus_timings(conn: st.connections.SQLConnection, username:
                     bus_plate_num=next_bus_plate_num
                 )
 
-                if next_bus_arr_button_pressed:
-                    arr_button_pressed = True
+                if next_bus_record_trip_button_pressed:
+                    record_trip_button_pressed = True
 
             with second_bus_col:
                 # Display second bus waiting time
-                second_bus_arr_button_pressed = await display_waiting_time(
+                second_bus_record_trip_button_pressed = await display_waiting_time(
                     conn=conn,
                     username=username,
                     waiting_time=second_bus_waiting_time,
@@ -298,8 +307,8 @@ async def display_live_bus_timings(conn: st.connections.SQLConnection, username:
                     bus_plate_num=second_bus_plate_num
                 )
 
-                if second_bus_arr_button_pressed:
-                    arr_button_pressed = True
+                if second_bus_record_trip_button_pressed:
+                    record_trip_button_pressed = True
 
         # Display last update time for this bus stop
         last_updated_time = adjust_to_timezone(time=datetime.datetime.now())
@@ -310,7 +319,7 @@ async def display_live_bus_timings(conn: st.connections.SQLConnection, username:
 
         update_button = st.button("Update Timings")
 
-        return arr_button_pressed
+        return record_trip_button_pressed
 
 
 async def main() -> None:
@@ -354,7 +363,7 @@ async def main() -> None:
         """
         **Note for Live Updates**:
         - For any selected bus stop, bus timings will be auto-updated every minute, but you can also update them manually by clicking the \"Update Timings\" button.
-        - If you have boarded a NUS bus (non-public bus) that has arrived, you can click on the corresponding \"Arr\" button to record your bus trip.
+        - When a NUS bus is about to arrive (either \"Arr\" or \"1 min\"), you can click on the corresponding button to record your bus trip, should you have boarded that bus.
         """
     )
 
@@ -362,11 +371,11 @@ async def main() -> None:
     user = st.session_state["user"]
 
     # Display bus updates
-    # Also returns a boolean flag that indicates whether or not an "Arr" button has been pressed
-    arr_button_pressed = await display_live_bus_timings(conn=conn, username=user.username)
+    # Also returns a boolean flag that indicates whether or not a "record trip" button has been pressed
+    record_trip_button_pressed = await display_live_bus_timings(conn=conn, username=user.username)
 
-    # If an "Arr" button has been pressed, dialog will be triggered - do not activate autorefresh
-    if not arr_button_pressed:
+    # If a "record trip" button has been pressed, dialog will be triggered - do not activate autorefresh
+    if not record_trip_button_pressed:
         # Continually rerun page after a given time interval, so as to auto-update bus timings
         st_autorefresh(interval=BUS_TIMINGS_AUTOREFRESH_INTERVAL, key="bus_timings_autorefresh")
 
