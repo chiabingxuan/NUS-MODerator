@@ -67,9 +67,18 @@ def display_user_enrollments(conn: st.connections.SQLConnection, user: User) -> 
             st.markdown("You have not enrolled for any courses. Use the Course Planner to save courses to your profile!")
             return
 
-        # Get the list of AYs involved in the plan and create one tab for each
+        # Get the list of AYs involved in the plan
         ays_in_enrollments = list(user_enrollments.keys())
-        course_records_tabs = st.tabs(ays_in_enrollments)
+        
+        # Format the name of the iBLOCs tab, if any
+        course_records_tab_names = ays_in_enrollments.copy()
+        if course_records_tab_names[0] < user.matriculation_ay:
+            # Due to AYs being in YYYY-YYYY format, we can use str comparison to compare them
+            # First AY in the records is before user matriculated - this is an IBLOC AY
+            course_records_tab_names[0] = "iBLOCs"
+
+        # Create one tab for each AY
+        course_records_tabs = st.tabs(course_records_tab_names)
 
         # Fill up the tabs for each AY
         ratings_dfs = list()     # To store ratings in the form (acad_year, sem_name, sem_num, module_code, rating)

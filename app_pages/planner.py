@@ -1,3 +1,4 @@
+from moderator.config import IBLOCS_SEM_NUM
 from moderator.planner.course_plan_checker import CoursePlanChecker
 from moderator.planner.save_plan_to_db import insert_valid_plan_into_db
 from moderator.utils.helpers import get_formatted_user_enrollments_from_db
@@ -53,21 +54,32 @@ def change_default_selection(checker: CoursePlanChecker, acad_year: str, sem_num
             
 
 def display_planner_tabs(checker: CoursePlanChecker) -> tuple[dict[str, dict[int, list[str]]], float]:
-    # Get list of AYs to consider for this user
+    # Get AYs to consider for this user, starting from IBLOCs term
     ays_for_user = checker.ays_for_user
+    ibloc_ay, matriculation_ay = ays_for_user[0], ays_for_user[1]      # User can take IBLOCs the AY before he / she matriculates
 
     # Create planner tabs for these AYs
-    planner_tabs = st.tabs(ays_for_user)
+    planner_tab_names = ays_for_user.copy()
+    planner_tab_names[0] = "iBLOCs"       # Format the name of the iBLOCs tab
+    planner_tabs = st.tabs(planner_tab_names)
 
     # Display planner for each AY
-    is_first_sem_for_user = True
+    is_y1s1_for_user = False
     for acad_year, planner_tab in zip(ays_for_user, planner_tabs):
         with planner_tab:
+            # Update flag for whether or not this iteration corresponds to Y1S1
+            if acad_year == matriculation_ay:
+                is_y1s1_for_user = True
+            
             is_first_sem_of_ay = True
 
             # Add a multi-module selection field for each term in the AY
             # Semester info is a list of lists in the form (sem_num, sem_name, min_mcs)
             for sem_num, sem_name, sem_min_mcs in checker._sem_info:
+                # If this is an IBLOC AY, only need to consider one term (ie. sem_num = 3 aka Special Term 1)
+                if acad_year == ibloc_ay and sem_num != IBLOCS_SEM_NUM:
+                    continue
+
                 # Add divider to split the selection fields
                 if not is_first_sem_of_ay:
                     st.divider()
@@ -105,7 +117,7 @@ def display_planner_tabs(checker: CoursePlanChecker) -> tuple[dict[str, dict[int
                     acad_year=acad_year,
                     sem_num=sem_num,
                     sem_min_mcs=sem_min_mcs,
-                    is_first_sem_for_user=is_first_sem_for_user
+                    is_y1s1_for_user=is_y1s1_for_user
                 )
 
                 # Display total number of MCs for the selection
@@ -119,7 +131,7 @@ def display_planner_tabs(checker: CoursePlanChecker) -> tuple[dict[str, dict[int
                 }
                 message_function[message_type](message)
 
-                is_first_sem_for_user = False
+                is_y1s1_for_user = False
                 is_first_sem_of_ay = False
 
     return checker.plan, checker.total_mcs_taken

@@ -1,4 +1,4 @@
-from moderator.config import AVERAGE_MCS_PER_AY, MAX_MCS_FIRST_SEM
+from moderator.config import AVERAGE_MCS_PER_AY, MAX_MCS_FIRST_SEM, IBLOCS_SEM_NUM
 from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
 from moderator.sql.majors import GET_EXISTING_MAJOR_QUERY
 from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
@@ -61,7 +61,9 @@ class CoursePlanChecker(object):
         # Get the AYs during which the user will be studying (capped off by current AY)
         first_ay = user.matriculation_ay
         first_ay_index = list_of_ays.index(first_ay)
-        self._ays_for_user = list_of_ays[first_ay_index: first_ay_index + self._num_years_to_grad]
+        ibloc_ay_index = first_ay_index - 1     # IBLOCs are taken in the AY before the user matriculates (eg. Special Term 1)
+        ibloc_ay = list_of_ays[ibloc_ay_index]
+        self._ays_for_user = list_of_ays[ibloc_ay_index: first_ay_index + self._num_years_to_grad]
 
         # Get module info required for planner
         # Maps each module to its number of MCs, and whether or not it is year-long
@@ -76,7 +78,8 @@ class CoursePlanChecker(object):
         # Initialise default selections for selectboxes (memorise user's choices)
         # Structure: Keys are AYs. Values are themselves dictionaries, with keys = sem_num and 
         # values = list of default module names for that semester's selectbox
-        self._course_default_selections = {ay: {sem_num: list() for sem_num, _, _ in self._sem_info} for ay in self._ays_for_user}
+        self._course_default_selections = {ay: {sem_num: list() for sem_num, _, _ in self._sem_info} for ay in self._ays_for_user[1:]}      # Populate for non-IBLOC AYs
+        self._course_default_selections[ibloc_ay] = {IBLOCS_SEM_NUM: list()}        # Populate for IBLOC AY - only one term
 
         # Will keep track of the plan, building it iteratively, based on the user's selections for each term
         # Structure: Keys are AYs. Values are themselves dictionaries, with keys = sem_num and values = list of module codes for that term
@@ -402,7 +405,7 @@ class CoursePlanChecker(object):
         return False
 
 
-    def check_module_selection_for_term(self, acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, sem_min_mcs: float, is_first_sem_for_user: bool) -> dict[str, bool | str]:
+    def check_module_selection_for_term(self, acad_year: str, selected_module_codes: list[str], selected_total_mcs: float, sem_min_mcs: float, is_y1s1_for_user: bool) -> dict[str, bool | str]:
         # Returns a dictionary with keys "type" and "message"
         # "type" will be the type of message to be displayed by Streamlit (success / warning / error)
         result = dict()
@@ -426,7 +429,7 @@ class CoursePlanChecker(object):
         
         # If this is user's first semester, there is a limit to how many MCs he / she can take
         # Check if maximum MC requirement is met (ie. for first semester)
-        if is_first_sem_for_user and selected_total_mcs > self._max_mcs_first_sem:
+        if is_y1s1_for_user and selected_total_mcs > self._max_mcs_first_sem:
             result["type"] = "error"
             result["message"] = f"You have exceeded the limit of {self._max_mcs_first_sem} MCs."
             return result
@@ -490,7 +493,7 @@ class CoursePlanChecker(object):
             self._course_default_selections[acad_year][sem_num] = list()
 
 
-    def handle_user_selection_for_term(self, selected_module_names: list[str], acad_year: str, sem_num: int, sem_min_mcs: float, is_first_sem_for_user: bool) -> tuple[str, str, float]:
+    def handle_user_selection_for_term(self, selected_module_names: list[str], acad_year: str, sem_num: int, sem_min_mcs: float, is_y1s1_for_user: bool) -> tuple[str, str, float]:
         # Get list of selected module codes from the module names
         selected_module_codes = [module_name.split()[0] for module_name in selected_module_names]
 
@@ -523,7 +526,7 @@ class CoursePlanChecker(object):
                 selected_module_codes=selected_module_codes,
                 selected_total_mcs=selected_total_mcs,
                 sem_min_mcs=sem_min_mcs,
-                is_first_sem_for_user=is_first_sem_for_user
+                is_y1s1_for_user=is_y1s1_for_user
             )
 
             message_type = result["type"]

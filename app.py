@@ -186,7 +186,7 @@ def display_and_handle_auth_tabs(conn: st.connections.SQLConnection) -> None:
             username_input = st.text_input("Username")
             first_name_input = st.text_input("First Name")
             last_name_input = st.text_input("Last Name")
-            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"], index=None)
+            matriculation_ay_input = st.selectbox("Matriculation AY", options=st.session_state["list_of_ays"][1:], index=None)  # Earliest AY (2021-2022) will be used as the IBLOC AY for users that matriculated in AY 2022-2023. AY 2022-2023 is the earliest matriculation AY
             major_input = st.selectbox("Major", options=major_list, index=None)
             password_input = st.text_input("Password", type="password")
             register_button = st.form_submit_button("Register")

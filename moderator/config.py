@@ -57,6 +57,9 @@ MAX_MCS_FIRST_SEM = 23.0
 # Set average number of MCs that a student takes per AY. Typically, it should be 40 MCs
 AVERAGE_MCS_PER_AY = 40.0
 
+# Set the semester number when IBLOCs are offered. Typically, we set this to Special Term 1 (sem_num = 3)
+IBLOCS_SEM_NUM = 3
+
 ### QA CONFIGS ###
 # Choose number of documents to be retrieved
 NUM_DOCUMENTS_RETRIEVED_GENERAL = 4
