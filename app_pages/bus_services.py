@@ -81,44 +81,44 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
     if is_starting_bus_stop_terminal:
         # Starting bus stop is terminal - cannot board this bus
         st.markdown(f"Bus service {bus_num} terminates at this bus stop. You cannot board this bus.")
-        return
     
-    # Bus can be boarded
-    # Get user's destination from his / her selection
-    selected_end_bus_stop_name = st.selectbox("Choose your destination", options=ordered_subsequent_bus_stop_names)
-    selected_end_bus_stop_code = subsequent_bus_stop_names_to_codes[selected_end_bus_stop_name]
+    else:
+        # Bus can be boarded
+        # Get user's destination from his / her selection
+        selected_end_bus_stop_name = st.selectbox("Choose your destination", options=ordered_subsequent_bus_stop_names)
+        selected_end_bus_stop_code = subsequent_bus_stop_names_to_codes[selected_end_bus_stop_name]
 
-    # Get actual time when user alights at his destination
-    current_time = adjust_to_timezone(time=datetime.datetime.now())
-    end_time = st.time_input("When did you arrive at your destination?", value=current_time, step=60)
-    end_date = datetime.datetime.combine(current_time.date(), end_time)
+        # Get actual time when user alights at his destination
+        current_time = adjust_to_timezone(time=datetime.datetime.now())
+        end_time = st.time_input("When did you arrive at your destination?", value=current_time, step=60)
+        end_date = datetime.datetime.combine(current_time.date(), end_time)
 
-    confirm_button = st.button("Submit Trip")
+        confirm_button = st.button("Submit Trip")
+        
+        # Record trip data in database
+        if confirm_button:
+            # Check validity of time of arrival
+            if end_date <= start_date:
+                st.error("Time of arrival must be later than time of boarding. Please review.")
+                return
+        
+            record_trip(
+                conn=conn,
+                username=username,
+                bus_num=bus_num,
+                start_bus_stop=start_bus_stop,
+                end_bus_stop=selected_end_bus_stop_code,
+                start_date=start_date,
+                end_date=end_date,
+                eta_date=st.session_state["eta_dates_dialog"][selected_end_bus_stop_code],   # Get ETA from session state
+                weather=weather
+            )
+
+            st.success("Bus trip has been recorded!")
+            time.sleep(1)
+            st.rerun()
+        
     cancel_button = st.button("Cancel")
-
-    # Record trip data in database
-    if confirm_button:
-        # Check validity of time of arrival
-        if end_date <= start_date:
-            st.error("Time of arrival must be later than time of boarding. Please review.")
-            return
-    
-        record_trip(
-            conn=conn,
-            username=username,
-            bus_num=bus_num,
-            start_bus_stop=start_bus_stop,
-            end_bus_stop=selected_end_bus_stop_code,
-            start_date=start_date,
-            end_date=end_date,
-            eta_date=st.session_state["eta_dates_dialog"][selected_end_bus_stop_code],   # Get ETA from session state
-            weather=weather
-        )
-
-        st.success("Bus trip has been recorded!")
-        time.sleep(1)
-        st.rerun()
-    
     if cancel_button:
         # If cancellation is triggered, use a rerun to close the dialog
         st.rerun()
