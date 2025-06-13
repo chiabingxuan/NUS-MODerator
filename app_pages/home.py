@@ -1,6 +1,6 @@
 import altair as alt
 from moderator.config import ACAD_YEAR
-from moderator.utils.helpers import get_general_statistics, get_user_growth_statistics
+from moderator.utils.helpers import get_general_statistics, get_user_growth_statistics, get_latest_announcements
 import streamlit as st
 
 
@@ -8,7 +8,6 @@ def display_stats(conn: st.connections.SQLConnection, acad_year: str):
     # Query the relevant statistics from database
     num_depts, num_modules, num_reviews, num_users = get_general_statistics(conn=conn, acad_year=acad_year)
     new_users_by_date_df = get_user_growth_statistics(conn=conn)
-
 
     # Display statistics
     with st.container(border=True):
@@ -33,6 +32,17 @@ def display_stats(conn: st.connections.SQLConnection, acad_year: str):
             st.altair_chart(chart)
 
 
+def display_announcements(conn: st.connections.SQLConnection):
+    # Query the latest announcements, in the form (username, message, publish_date)
+    latest_announcements_rows_queried = get_latest_announcements(conn=conn)
+    
+    # Display announcements in descending order of recency
+    with st.container(border=True):
+        st.markdown("#### Announcements")
+        for username, message, publish_date in latest_announcements_rows_queried:
+            st.markdown(f"**{username}** [{publish_date.strftime("%d/%m/%Y %I:%M:%S %p")}]: {message}")
+
+
 # Retrieve connection from session state
 conn = st.session_state["conn"]
 
@@ -45,3 +55,6 @@ st.header(f"Welcome, {display_name}!")
 
 # Display statistics
 display_stats(conn=conn, acad_year=ACAD_YEAR)
+
+# Display latest announcements
+display_announcements(conn=conn)

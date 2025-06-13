@@ -118,6 +118,8 @@ def display_majors_panel(conn: st.connections.SQLConnection, admin: Admin) -> No
             elif admin.add_new_major(conn=conn, major=major_name, department=department_name, num_years_for_major=num_years_for_major):
                 # Action is successful
                 st.success("Major has been added!")
+                time.sleep(1)
+                st.rerun()
             
             else:
                 # Action is not successful - major already exists in database
@@ -139,10 +141,33 @@ def display_admin_panel(conn: st.connections.SQLConnection, admin: Admin) -> Non
             elif admin.make_user_admin(conn=conn, username=username_to_give_admin):
                 # Action is successful
                 st.success("Admin rights have been granted!")
+                time.sleep(1)
+                st.rerun()
             
             else:
                 # Action is not successful - username does not exist in database
                 st.error("The username does not exist.")
+
+
+def display_add_announcements_panel(conn: st.connections.SQLConnection, admin: Admin) -> None:
+    with st.form("add_announcements_panel"):
+        st.markdown("#### Make Announcements")
+        st.markdown("Compose an announcement here:")
+
+        # Input message to be published
+        message = st.text_input("Announcement")
+        if st.form_submit_button("Submit"):
+            if not message:
+                st.error("Please ensure that the message is filled up.")
+            
+            else:
+                # Add announcement to database
+                admin.make_announcement(conn=conn, message=message)
+
+                # Action is successful
+                st.success("Announcement has been made!")
+                time.sleep(1)
+                st.rerun()
 
 
 # Retrieve connection from session state
@@ -166,3 +191,6 @@ display_majors_panel(conn=conn, admin=user)
 
 # Display panel to manage admins
 display_admin_panel(conn=conn, admin=user)
+
+# Display panel to make announcements
+display_add_announcements_panel(conn=conn, admin=user)

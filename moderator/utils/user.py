@@ -6,6 +6,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from moderator.config import DISQUS_RETRIEVAL_LIMIT, DISQUS_SHORT_NAME, SEMESTER_LIST, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDINGS_MODEL_NAME, PINECONE_BATCH_SIZE, BUS_STOPS_URL, BUS_ROUTES_URL
 from moderator.sql.acad_years import INSERT_NEW_ACAD_YEAR_STATEMENT
+from moderator.sql.announcements import ADD_NEW_ANNOUNCEMENT_STATEMENT
 from moderator.sql.bus_numbers import GET_BUS_NUMBERS_QUERY, INSERT_BUS_NUMBER_STATEMENT, DELETE_BUS_NUMBER_STATEMENT
 from moderator.sql.bus_routes import GET_BUS_ROUTES_QUERY, INSERT_BUS_ROUTE_STATEMENT, DELETE_BUS_ROUTE_STATEMENT
 from moderator.sql.bus_stops import GET_BUS_STOPS_QUERY, INSERT_BUS_STOP_STATEMENT, DELETE_BUS_STOP_STATEMENT
@@ -16,6 +17,7 @@ from moderator.sql.offers import INSERT_NEW_OFFER_STATEMENT
 from moderator.sql.reviews import INSERT_NEW_REVIEW_STATEMENT
 from moderator.sql.users import GET_EXISTING_USER_QUERY, MAKE_USER_ADMIN_STATEMENT
 from moderator.sql.vector_store_update import GET_MODULE_COMBINED_REVIEWS_QUERY
+from moderator.utils.helpers import adjust_to_timezone
 import requests
 import streamlit as st
 from sqlalchemy import text
@@ -684,4 +686,20 @@ class Admin(User):
         
         return True
     
+
+    ### GRANT ADMIN RIGHTS ###
+    # Admin can make announcements, which can be viewed by all other users in the home page
+    def make_announcement(self, conn: st.connections.SQLConnection, message: str):
+        with conn.session as s:
+            s.execute(
+                text(ADD_NEW_ANNOUNCEMENT_STATEMENT),
+                params={
+                    "username": self._username,
+                    "message": message,
+                    "publish_date": adjust_to_timezone(time=datetime.datetime.now())
+                }
+            )
+
+            s.commit()
+
 

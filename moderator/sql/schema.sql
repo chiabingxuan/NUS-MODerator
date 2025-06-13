@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS bus_trips (
     bus_num VARCHAR(15),
     start_bus_stop VARCHAR(255),
     end_bus_stop VARCHAR(255),
-    start_date TIMESTAMP,
+    start_date TIMESTAMP,               -- TODO: Add trigger to make sure trip durations do not overlap for a given user?
     end_date TIMESTAMP NOT NULL,
     eta TIMESTAMP,
     weather VARCHAR(255) NOT NULL,
@@ -122,3 +122,11 @@ CREATE TABLE IF NOT EXISTS bus_trips (
     FOREIGN KEY (end_bus_stop) REFERENCES bus_stops(code_name) ON DELETE CASCADE ON UPDATE CASCADE,
     CHECK (start_date < end_date)
 );
+
+CREATE TABLE IF NOT EXISTS announcements (
+    username VARCHAR(255),      -- TODO: Add trigger to make sure this is an admin?
+    message TEXT,
+    publish_date TIMESTAMP,
+    PRIMARY KEY (username, message, publish_date),
+    FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE
+)

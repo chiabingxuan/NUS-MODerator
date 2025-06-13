@@ -70,3 +70,7 @@ LLM_NAME = "deepseek-r1-distill-llama-70b"
 
 ### OTHERS ###
 HOURS_WRT_UTC = 8       # UTC to SGT
+
+### ANNOUNCEMENTS ###
+# Set maximum number of announcements that can be viewed in home page
+ANNOUNCEMENT_LIMIT = 20

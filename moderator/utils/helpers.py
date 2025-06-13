@@ -1,5 +1,6 @@
 import datetime
-from moderator.config import HOURS_WRT_UTC
+from moderator.config import HOURS_WRT_UTC, ANNOUNCEMENT_LIMIT
+from moderator.sql.announcements import GET_LATEST_ANNOUNCEMENTS_QUERY
 from moderator.sql.departments import GET_SPECIFIC_AY_DEPARTMENTS_QUERY
 from moderator.sql.enrollments import GET_ENROLLMENTS_OF_USER_QUERY
 from moderator.sql.majors import GET_MAJORS_QUERY
@@ -33,10 +34,24 @@ def get_user_growth_statistics(conn: st.connections.SQLConnection) -> pd.DataFra
     return new_users_by_date_df
 
 
+### GET ANNOUNCEMENTS ###
+def get_latest_announcements(conn: st.connections.SQLConnection) -> tuple[str, str, datetime.datetime]:
+    # Query the latest announcements, in descending order of recency, in the form (username, message, publish_date)
+    latest_announcements_rows_queried = conn.query(
+        GET_LATEST_ANNOUNCEMENTS_QUERY,
+        params={
+            "announcement_limit": ANNOUNCEMENT_LIMIT
+        },
+        ttl=3600
+    ).values.tolist()
+
+    return latest_announcements_rows_queried
+
+
 ### HANDLING SEMESTER DATA ###
 def get_semester_info(conn: st.connections.SQLConnection) -> list[list[int | str | np.float64]]:
     # Get list of lists in the form (sem_num, sem_name, min_mcs)
-    sem_info = conn.query(GET_SEMESTERS_QUERY, ttl=3600).values.tolist()
+    sem_info = conn.query(GET_SEMESTERS_QUERY, ttl=0).values.tolist()
 
     return sem_info
 

@@ -1,7 +1,6 @@
 import aiohttp
 from moderator.config import NEXTBUS_API_BASE_URL
 from moderator.sql.bus_stops import GET_BUS_STOPS_QUERY
-import requests
 import streamlit as st
 
 
