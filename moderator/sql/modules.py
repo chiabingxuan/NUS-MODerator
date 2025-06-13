@@ -34,6 +34,13 @@ WHERE EXISTS (
 ORDER BY m.code ASC;
 """
 
+GET_IBLOC_AY_MODULES_QUERY = """
+SELECT m.code, m.title
+FROM modules m, iblocs i
+WHERE m.code = i.ibloc_code
+ORDER BY m.code ASC;
+"""
+
 GET_MODULE_INFO_QUERY = """
 SELECT *
 FROM modules m

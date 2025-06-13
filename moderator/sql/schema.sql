@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS credit_internships (
     FOREIGN KEY (internship_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS iblocs (
+    ibloc_code VARCHAR(255) PRIMARY KEY, 
+    FOREIGN KEY (ibloc_code) REFERENCES modules(code) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS acad_years (
     acad_year VARCHAR(255) PRIMARY KEY
 );

@@ -60,7 +60,7 @@ def display_planner_tabs(checker: CoursePlanChecker) -> tuple[dict[str, dict[int
 
     # Create planner tabs for these AYs
     planner_tab_names = ays_for_user.copy()
-    planner_tab_names[0] = "iBLOCs"       # Format the name of the iBLOCs tab
+    planner_tab_names[0] = "iBLOCs"       # Format the name of the IBLOCs tab
     planner_tabs = st.tabs(planner_tab_names)
 
     # Display planner for each AY

@@ -1,7 +1,7 @@
 from moderator.config import AVERAGE_MCS_PER_AY, MAX_MCS_FIRST_SEM, IBLOCS_SEM_NUM
 from moderator.sql.credit_internships import GET_CREDIT_INTERNSHIPS_QUERY
 from moderator.sql.majors import GET_EXISTING_MAJOR_QUERY
-from moderator.sql.modules import GET_SPECIFIC_TERM_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
+from moderator.sql.modules import GET_IBLOC_AY_MODULES_QUERY, GET_MODULES_INFO_FOR_PLANNER_QUERY, GET_SPECIFIC_TERM_MODULES_QUERY, GET_TERMS_OFFERED_FOR_SPECIFIC_MODULE_QUERY
 from moderator.utils.helpers import get_semester_info
 from moderator.utils.user import User
 import numpy as np
@@ -216,15 +216,24 @@ class CoursePlanChecker(object):
 
     ### PREPARATION FOR USER'S COURSE SELECTION ###
     def get_available_modules_for_term(self, acad_year: str, sem_num: int) -> list[list[str]]:
-        # Query the modules available for the selected term - a list of lists in the form (module_code, module_title)
-        available_modules = self._conn.query(
-            GET_SPECIFIC_TERM_MODULES_QUERY,
-            params={
-                "acad_year": acad_year,
-                "sem_num": sem_num
-            },
-            ttl=3600
-        ).values.tolist()
+        # Check if selected AY is the IBLOC AY for user
+        if acad_year == self._ays_for_user[0]:
+            # Selected AY is the IBLOC AY - only retrieve the IBLOC modules
+            available_modules = self._conn.query(
+                GET_IBLOC_AY_MODULES_QUERY,
+                ttl=3600
+            ).values.tolist()
+
+        else:
+            # Query the modules available for the selected term - a list of lists in the form (module_code, module_title)
+            available_modules = self._conn.query(
+                GET_SPECIFIC_TERM_MODULES_QUERY,
+                params={
+                    "acad_year": acad_year,
+                    "sem_num": sem_num
+                },
+                ttl=3600
+            ).values.tolist()
 
         return available_modules
     
@@ -309,7 +318,9 @@ class CoursePlanChecker(object):
             module_mcs, module_is_year_long = self._module_infos[module_code]["num_mcs"], self._module_infos[module_code]["is_year_long"]
 
             # If module is year-long, number of MCs should be divided equally across each term that it is being taken
-            if module_is_year_long:
+            # We also make sure that we do not do this for year-long modules in IBLOC AY, but it should be impossible
+            # for year-long modules to appear in IBLOC AY
+            if module_is_year_long and acad_year != self._ays_for_user[0]:
                 num_sems_taken = len(self.get_terms_offered_for_module(module_code=module_code, acad_year=acad_year))
                 module_mcs /= num_sems_taken
 
