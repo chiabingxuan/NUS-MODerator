@@ -70,9 +70,12 @@ def get_weather() -> str:
     return nus_forecast
 
 
-def record_trip(conn: st.connections.SQLConnection, username: str, bus_num: str, start_bus_stop: str, end_bus_stop: str, start_date: datetime.datetime, end_date: datetime.datetime, eta_date: datetime.datetime, weather: str) -> None:
+# If the insertion is successful, this returns True, False otherwise
+def record_trip(conn: st.connections.SQLConnection, username: str, bus_num: str, start_bus_stop: str, end_bus_stop: str, start_date: datetime.datetime, end_date: datetime.datetime, eta_date: datetime.datetime, weather: str) -> bool:
     with conn.session as s:
-        s.execute(
+        # Get a tuple of length 1 containing the start date of the trip
+        # If insertion is not intercepted, this will not be None
+        start_date_tuple = s.execute(
             text(INSERT_BUS_TRIP_STATEMENT),
             params={
                 "username": username,
@@ -84,6 +87,12 @@ def record_trip(conn: st.connections.SQLConnection, username: str, bus_num: str,
                 "eta": eta_date,
                 "weather": weather
             }
-        )
+        ).fetchone()
 
         s.commit()
+
+        # Insertion of trip is intercepted by trigger - the time range of this trip overlaps with past trips (of the given user)
+        if start_date_tuple is None:
+            return False
+
+    return True

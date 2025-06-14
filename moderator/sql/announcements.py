@@ -1,6 +1,7 @@
 ADD_NEW_ANNOUNCEMENT_STATEMENT = """
 INSERT INTO announcements
-VALUES (:username, :message, :publish_date);
+VALUES (:username, :message, :publish_date)
+RETURNING publish_date;
 """
 
 GET_LATEST_ANNOUNCEMENTS_QUERY = """

@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS bus_trips (
 );
 
 CREATE TABLE IF NOT EXISTS announcements (
-    username VARCHAR(255),      -- TODO: Add trigger to make sure this is an admin?
+    username VARCHAR(255),
     message TEXT,
     publish_date TIMESTAMP,
     PRIMARY KEY (username, message, publish_date),

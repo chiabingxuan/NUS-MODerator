@@ -689,17 +689,25 @@ class Admin(User):
 
     ### GRANT ADMIN RIGHTS ###
     # Admin can make announcements, which can be viewed by all other users in the home page
-    def make_announcement(self, conn: st.connections.SQLConnection, message: str):
+    # If the action is successful, this returns True, False otherwise
+    def make_announcement(self, conn: st.connections.SQLConnection, message: str) -> bool:
         with conn.session as s:
-            s.execute(
+            # Get a tuple of length 1 containing the date when the announcement is published
+            # If insertion is not intercepted, this will not be None
+            publish_date_tuple = s.execute(
                 text(ADD_NEW_ANNOUNCEMENT_STATEMENT),
                 params={
                     "username": self._username,
                     "message": message,
                     "publish_date": adjust_to_timezone(time=datetime.datetime.now())
                 }
-            )
+            ).fetchone()
 
             s.commit()
 
+            # Insertion of announcement is intercepted by trigger - user is not admin
+            if publish_date_tuple is None:
+                return False
+
+        return True
 

@@ -102,7 +102,8 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
                 st.error("Time of arrival must be later than time of boarding. Please review.")
                 return
         
-            record_trip(
+            # Try to record trip and check whether it is successful
+            if record_trip(
                 conn=conn,
                 username=username,
                 bus_num=bus_num,
@@ -112,11 +113,14 @@ def confirm_record_of_bus_trip(conn: st.connections.SQLConnection, username: str
                 end_date=end_date,
                 eta_date=st.session_state["eta_dates_dialog"][selected_end_bus_stop_code],   # Get ETA from session state
                 weather=weather
-            )
-
-            st.success("Bus trip has been recorded!")
-            time.sleep(1)
-            st.rerun()
+            ):
+                st.success("Bus trip has been recorded!")
+                time.sleep(1)
+                st.rerun()
+            
+            else:
+                # Failed to record trip - the time range of this trip overlaps with past trips (of the given user)
+                st.error("Failed to record trip. The time range of this trip overlaps with past trips that you have made.")
         
     cancel_button = st.button("Cancel")
     if cancel_button:

@@ -160,14 +160,16 @@ def display_add_announcements_panel(conn: st.connections.SQLConnection, admin: A
             if not message:
                 st.error("Please ensure that the message is filled up.")
             
-            else:
-                # Add announcement to database
-                admin.make_announcement(conn=conn, message=message)
-
+            # Try to add announcement to database, and check whether or not it is successful
+            elif admin.make_announcement(conn=conn, message=message):
                 # Action is successful
                 st.success("Announcement has been made!")
                 time.sleep(1)
                 st.rerun()
+            
+            else:
+                # Action is not successful - user is not an admin
+                st.error("You do not seem to be an admin - announcement cannot be made.")
 
 
 # Retrieve connection from session state
