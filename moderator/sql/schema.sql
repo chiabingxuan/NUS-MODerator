@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS majors (
     department VARCHAR(255) NOT NULL,
     num_years INT NOT NULL,
     FOREIGN KEY (department) REFERENCES departments(department) ON DELETE CASCADE ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE IF NOT EXISTS modules (
     code VARCHAR(255) PRIMARY KEY,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS bus_trips (
     bus_num VARCHAR(15),
     start_bus_stop VARCHAR(255),
     end_bus_stop VARCHAR(255),
-    start_date TIMESTAMP,               -- TODO: Add trigger to make sure trip durations do not overlap for a given user?
+    start_date TIMESTAMP,
     end_date TIMESTAMP NOT NULL,
     eta TIMESTAMP,
     weather VARCHAR(255) NOT NULL,
@@ -129,4 +129,4 @@ CREATE TABLE IF NOT EXISTS announcements (
     publish_date TIMESTAMP,
     PRIMARY KEY (username, message, publish_date),
     FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE
-)
+);
