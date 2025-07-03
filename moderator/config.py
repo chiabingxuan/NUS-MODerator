@@ -1,6 +1,6 @@
 ### UPDATING DATABASE ###
 # Set the current (most recent) academic year
-ACAD_YEAR = "2024-2025"
+ACAD_YEAR = "2025-2026"
 
 # Set semesters
 SEMESTER_LIST = [
